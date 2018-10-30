@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 # probability (@p) for a usual workload (@alpha) job and plot the constraining formulas dictated by @alpha, @p, @miu
 # (while @miu is the service rate of each server) and the level of redundancy used. We assume that servers have the same
 # @miu.
+# Here, we specifically look for a certain @miu and @alpha, what are the @p and betas that give us a change for the
+# better with d=2 and a change for the worse with d=4 (all compared to d=1).
 ########################################################################################################################
 
 ########################################################################################################################
@@ -60,8 +62,9 @@ for y in range(90, 121):
 plt.plot(px, fp, 'red', label=r'$f(p)$')
 plt.plot(px, gp, 'green', label=r'$g(p)$')
 plt.plot(px, hp, 'blue', label=r'$h(p)$')
+plt.fill_between(px, gp, hp, where=(gp >= hp), facecolor='lightgreen', interpolate=True)
 plt.xlabel(r'$p$')
 plt.ylabel(r'$\beta$')
 plt.legend()
-plt.savefig('alpha=' + str(alpha) + ',miu=' + str(miu) + '.png')
+# plt.savefig('alpha=' + str(alpha) + ',miu=' + str(miu) + '.png')
 plt.show()
