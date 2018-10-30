@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 #   CONSTANTS
 ########################################################################################################################
 alpha = 10
-miu = 0.025
+miu = 0.001
 p_resolution = 1000
 
 ########################################################################################################################
@@ -34,7 +34,7 @@ h = lambda p: ((1.0 / (4.0 * miu)) - float(alpha) * (1.0 - (1.0 - p) ** 2)) / ((
 #   MAIN
 ########################################################################################################################
 # The '100' is there to provide better scaling for relevant plot.
-px = [float(x)/p_resolution for x in range(1,p_resolution-100)]
+px = [float(x)/p_resolution for x in range(1, p_resolution-30)]
 fp = [f(p) for p in px]
 gp = [g(p) for p in px]
 hp = [h(p) for p in px]
@@ -57,14 +57,20 @@ hp = [h(p) for p in px]
 # plt.ylabel(r'$\beta$')
 # plt.show()
 
-for y in range(90, 121):
-    plt.plot(px, [y for x in px], linestyle='dashed', color='grey')
-plt.plot(px, fp, 'red', label=r'$f(p)$')
-plt.plot(px, gp, 'green', label=r'$g(p)$')
-plt.plot(px, hp, 'blue', label=r'$h(p)$')
-plt.fill_between(px, gp, hp, where=(gp >= hp), facecolor='lightgreen', interpolate=True)
+# for y in range(90, 121):
+#     plt.plot(px, [y for x in px], linestyle='dashed', color='grey')
+# plt.plot(px, fp, 'red', label=r'$f(p)$')
+# plt.plot(px, gp, 'green', label=r'$g(p)$')
+# plt.plot(px, hp, 'blue', label=r'$h(p)$')
+
+plt.semilogy(px, fp, 'red', label=r'$f(p)$')
+plt.semilogy(px, gp, 'green', label=r'$g(p)$')
+plt.semilogy(px, hp, 'blue', label=r'$h(p)$')
+# plt.fill_between(px, gp, hp, where=(gp >= hp), facecolor='lightgreen', interpolate=True)
 plt.xlabel(r'$p$')
 plt.ylabel(r'$\beta$')
 plt.legend()
+plt.xlim(0.1)
+# plt.ylim(0.0, 1.0 / miu)
 # plt.savefig('alpha=' + str(alpha) + ',miu=' + str(miu) + '.png')
 plt.show()
