@@ -3,6 +3,9 @@ import numpy as np
 import math
 
 
+########################################################################################################################
+#   INTERFACE
+########################################################################################################################
 class DispatchPolicyStrategyAbstract:
     """An abstract class from which all dispatching policies need to inherit."""
 
@@ -17,7 +20,17 @@ class DispatchPolicyStrategyAbstract:
     def getDispatch(self, network):
         """Required Method"""
 
+    ##
+    # Get name of policy.
+    ##
+    @abc.abstractmethod
+    def getName(self):
+        """Required Method"""
 
+
+########################################################################################################################
+#   IMPLEMENTATIONS
+########################################################################################################################
 class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
     """A fixed subsets dispatching policy."""
 
@@ -49,3 +62,6 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
         maxTotalWorkloadInQueue = currWorkload[min_i] + randWorkload[min_i]
         addedWorkload = [np.max(maxTotalWorkloadInQueue - currWorkload[i], 0) for i in range(len(currWorkload))]
         return queuesChosen, addedWorkload
+
+    def getName(self):
+        return "fixed subsets"

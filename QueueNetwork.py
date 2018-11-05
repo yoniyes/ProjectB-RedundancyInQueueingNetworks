@@ -54,10 +54,18 @@ class QueueNetwork:
         self.time = 0
 
     ##
-    # Resets all queues to workload of 0.
+    # Get the time passed in the network.
     ##
     def getTime(self):
         return self.time
+
+    ##
+    # Set the time passed in the network.
+    ##
+    def setTime(self, time):
+        if int(time) < 0:
+            raise Exception("Trying to set the network time to a negative value")
+        self.time = int(time)
 
     ##
     # Returns a list of the current services.
