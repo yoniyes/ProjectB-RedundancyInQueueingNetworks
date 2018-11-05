@@ -17,7 +17,7 @@ class DispatchPolicyStrategyAbstract:
     # one of them adds to itself.
     ##
     @abc.abstractmethod
-    def getDispatch(self, network):
+    def getDispatch(self, args):
         """Required Method"""
 
     ##
@@ -44,7 +44,10 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
     # Randomly choose one of the fixed subsets and determine the workload each one of the queues in it will get.
     # Assumption: network.size % redundancy == 0
     ##
-    def getDispatch(self, network):
+    def getDispatch(self, args):
+        if len(args) != 1:
+            raise Exception("Missing arguments for dispatching policy")
+        network = args[0]
         n = network.getSize()
         # Choose the subset.
         numOfSubsets = int(math.ceil(n / float(self.redundancy)))

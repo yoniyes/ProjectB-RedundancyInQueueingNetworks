@@ -1,6 +1,7 @@
 import datetime
 from QueueNetwork import QueueNetwork
 
+
 class QueueNetworkSimulation:
     """Class for simulating a queue network in discrete time with a given dispatch policy."""
 
