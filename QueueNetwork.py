@@ -32,6 +32,7 @@ class QueueNetwork:
         # Member fields init.
         self.queues = [Queue(_services[i], _workloads[i]) for i in range(_size)]
         self.size = _size
+        self.time = 0
 
     ##
     # Resets all queues to services and workload of 0.
@@ -43,6 +44,20 @@ class QueueNetwork:
         if len(_services) != self.getSize():
             raise Exception("Services vector size mismatch with queue network size while trying to reset")
         [self.queues[i].reset(_services[i]) for i in range(self.getSize())]
+        self.time = 0
+
+    ##
+    # Resets all queues to workload of 0.
+    ##
+    def flush(self):
+        [q.reset(q.getService()) for q in self.queues]
+        self.time = 0
+
+    ##
+    # Resets all queues to workload of 0.
+    ##
+    def getTime(self):
+        return self.time
 
     ##
     # Returns a list of the current services.
@@ -116,3 +131,4 @@ class QueueNetwork:
     ##
     def advanceTimeSlot(self):
         [q.advanceTimeSlot() for q in self.queues]
+        self.time += 1
