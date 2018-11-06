@@ -1,5 +1,6 @@
 import datetime
 from QueueNetwork import QueueNetwork
+from StatsCollector import StatsCollector
 
 
 class QueueNetworkSimulation:
@@ -11,19 +12,21 @@ class QueueNetworkSimulation:
     # If only a size and policy were given, all queues will have service = 1, workload = 0.
     ##
     def __init__(self, size, dispatchPolicyStrategy, convergenceConditionStrategy, plotStrategy=None, services=[],
-                 workloads=[], verbose=False):
+                 workloads=[], userStatsClass=None, historyWindowSize=1000, verbose=False):
         # Member fields init.
         self.network = QueueNetwork(size, services=services, workloads=workloads)
         self.dispatchPolicyStrategy = dispatchPolicyStrategy
         self.convergenceConditionStrategy = convergenceConditionStrategy
         self.plotStrategy = plotStrategy
+        self.statsCollector = StatsCollector(windowSize=historyWindowSize,userDefinedStatsClass=userStatsClass)
         self.verbose = verbose
 
     ##
     # Resets the simulation.
     ##
-    def reset(self):
+    def reset(self, historyWindowSize=0):
         self.network.flush()
+        self.statsCollector.reset(windowSize=historyWindowSize)
         if self.verbose:
             print "INFO:    Simulation reset."
 
@@ -89,6 +92,6 @@ class QueueNetworkSimulation:
         if self.verbose:
             print "INFO:    Plotting..."
         if self.plotStrategy is not None:
-            self.plotStrategy.plot(self.network)
+            self.plotStrategy.plot(self.statsCollector)
         if plotStrategy is not None:
-            plotStrategy.plot(self.network)
+            plotStrategy.plot(self.statsCollector)

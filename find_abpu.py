@@ -42,21 +42,6 @@ hp = [h(p) for p in px]
 ########################################################################################################################
 #   PLOTS
 ########################################################################################################################
-# plt.plot(px, fp, 'red')
-# plt.xlabel(r'$p$')
-# plt.ylabel(r'$\beta$')
-# plt.show()
-#
-# plt.plot(px, gp, 'green')
-# plt.xlabel(r'$p$')
-# plt.ylabel(r'$\beta$')
-# plt.show()
-#
-# plt.plot(px, hp, 'blue')
-# plt.xlabel(r'$p$')
-# plt.ylabel(r'$\beta$')
-# plt.show()
-
 # for y in range(90, 121):
 #     plt.plot(px, [y for x in px], linestyle='dashed', color='grey')
 # plt.plot(px, fp, 'red', label=r'$f(p)$')
