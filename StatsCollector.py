@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 
 # FIXME: Maybe a composite design pattern? Or just inheritance? Current design is bad!
 class StatsCollector:
@@ -38,13 +38,13 @@ class StatsCollector:
     # Gets the window average.
     ##
     def getAverage(self):
-        return np.average(self.window)
+        return float(np.sum(self.window)) / float(len(self.window))
 
     ##
     # Gets the window standard deviation.
     ##
     def getStdv(self):
-        return np.std(self.window)
+        return math.sqrt(np.var(self.window))
 
     ##
     # Gets the window variance.

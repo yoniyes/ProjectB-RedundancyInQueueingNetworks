@@ -67,7 +67,7 @@ class QueueNetworkSimulation:
     # Run the simulation.
     ##
     # FIXME: not generic at the moment...
-    def run(self, lambda_granularity=1000):
+    def run(self, lambdaGranularity=1000):
         start_time = datetime.datetime.now()
         if self.verbose:
             print "INFO:    Starting simulation:"
@@ -78,12 +78,11 @@ class QueueNetworkSimulation:
             print "INFO:        servers service per time slot   :   " + str(self.network.getServices())
             print "INFO:        servers initial workload        :   " + str(self.network.getWorkloads())
 
-        arrivalRates = []
-        effectiveServiceRate = self.dispatchPolicyStrategy.getEffectiveServiceRate()
-        if effectiveServiceRate == None:
-            arrivalRates = np.arange(0, 1, 1.0 / lambda_granularity)
+        effectiveServiceRate = self.dispatchPolicyStrategy.getEffectiveServiceRate(self.network)
+        if effectiveServiceRate == 0:
+            arrivalRates = np.arange(0, 1, 1.0 / lambdaGranularity)
         else:
-            arrivalRates = np.arange(0, effectiveServiceRate, 1.0 / lambda_granularity)
+            arrivalRates = np.arange(0, effectiveServiceRate, 1.0 / lambdaGranularity)
         for arrivalRate in arrivalRates:
             if self.verbose:
                 print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + str(100.0 * arrivalRate /
@@ -92,17 +91,19 @@ class QueueNetworkSimulation:
             while self.network.getTime() < self.T_max:
                 newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
                 if newArrival:
-                    queues, newWork = self.dispatchPolicyStrategy.getDispatch()
+                    queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
                     self.network.addWorkload(newWork, queues)
                 self.network.endTimeSlot()
-                if self.convergenceConditionStrategy.hasConverged(self.network, self.T_min, self.T_max,
-                                                                  self.epsilon):
+                if arrivalRate == 0 or self.network.getTime() % self.T_min == 0 and \
+                        self.convergenceConditionStrategy.hasConverged(self.network, self.T_min, self.T_max,
+                                                                       self.epsilon):
                     self.statsCollector.insert(self.network.getStats().getAverage())
                     break
                 self.network.advanceTimeSlot()
-            self.network.reset()
             if self.verbose:
                 print "INFO:    Round ended at  :   " + str(datetime.datetime.now())
+                print "INFO:    Time slot       :   " + str(self.network.getTime())
+            self.network.reset()
 
         end_time = datetime.datetime.now()
         if self.verbose:
@@ -133,3 +134,13 @@ class QueueNetworkSimulation:
             self.plotStrategy.plot(self.statsCollector)
         if plotStrategy is not None:
             plotStrategy.plot(self.statsCollector)
+
+
+########################################################################################################################
+#   MAIN
+########################################################################################################################
+import DispatchPolicyStrategy
+import ConvergenceConditionStrategy
+sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(10, 0.25, 0.75),
+                             ConvergenceConditionStrategy.STDVConvergenceStrategy(), verbose=True)
+sim.run(lambdaGranularity=5)

@@ -63,7 +63,7 @@ class QueueNetwork:
         if not _workloads:
             _workloads = [0 for i in range(_size)]
         if not _userDefinedStats:
-            _userDefinedStats = RunningAverageStats()
+            _userDefinedStats = RunningAverageStats(historyWindowSize)
 
         # Member fields init.
         self.queues = [Queue(_services[i], _workloads[i]) for i in range(_size)]
