@@ -17,7 +17,14 @@ class DispatchPolicyStrategyAbstract:
     # one of them adds to itself.
     ##
     @abc.abstractmethod
-    def getDispatch(self, args):
+    def getDispatch(self, network):
+        """Required Method"""
+
+    ##
+    # Get effective service rate of policy.
+    ##
+    @abc.abstractmethod
+    def getEffectiveServiceRate(self, network):
         """Required Method"""
 
     ##
@@ -44,10 +51,7 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
     # Randomly choose one of the fixed subsets and determine the workload each one of the queues in it will get.
     # Assumption: network.size % redundancy == 0
     ##
-    def getDispatch(self, args):
-        if len(args) != 1:
-            raise Exception("Missing arguments for dispatching policy")
-        network = args[0]
+    def getDispatch(self, network):
         n = network.getSize()
         # Choose the subset.
         numOfSubsets = int(math.ceil(n / float(self.redundancy)))
@@ -68,3 +72,44 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
 
     def getName(self):
         return "fixed subsets"
+
+    def getEffectiveServiceRate(self, network):
+        """need to implement"""
+
+
+class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
+    """A fixed service rate dispatching policy."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @miu being the total service rate and @p being the
+    # probability to choose alpha.
+    ##
+    def __init__(self, alpha, miu, p):
+        self.alpha = alpha
+        self.beta = ((1.0/miu) - float(alpha)*p) / (1.0 - p)
+        self.p = p
+        self.miu = miu
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        return [0], [np.random.choice([self.alpha, self.beta], p=[self.p, 1.0 - self.p])]
+
+    def getName(self):
+        return "one queue fixed service rate"
+
+    def getEffectiveServiceRate(self, network):
+        return self.miu
+
+    def setP(self, p):
+        if p < 0 or p > 1:
+            raise Exception("Invalid probability given")
+        self.p = p
+        self.beta = ((1.0/self.miu) - float(self.alpha)*p) / (1.0 - p)
+
+    def setBeta(self, beta):
+        if beta <= self.alpha:
+            raise Exception("Invalid beta, should be greater than alpha")
+        self.p = (beta - (1.0/self.miu)) / (beta - self.alpha)
+        self.beta = beta

@@ -60,8 +60,13 @@ class Queue:
         self.service = int(service)
 
     ##
-    # Reduces the amount of workload in Queue by service and increments the time that passed.
+    # Reduces the amount of workload in Queue by service.
+    ##
+    def endTimeSlot(self):
+        self.addWorkload(-self.getService())
+
+    ##
+    # Increments the time that passed.
     ##
     def advanceTimeSlot(self):
-        self.addWorkload(-self.getService())
         self.timePassed += 1

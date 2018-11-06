@@ -1,6 +1,7 @@
 import numpy as np
 
 
+# FIXME: Maybe a composite design pattern? Or just inheritance? Current design is bad!
 class StatsCollector:
     """Class for storing statistics and information about a queue network."""
 
@@ -12,7 +13,7 @@ class StatsCollector:
     # Another way to achieve this is to create a new class that instantiates a StatsCollector as a member.
     # The initial window will be filled with 0's.
     ##
-    def __init__(self, windowSize=1000, userDefinedStatsClass=None):
+    def __init__(self, windowSize=10000, userDefinedStatsClass=None):
         if windowSize <= 0:
             raise Exception("Invalid window size of" + str(windowSize))
         self.window = np.zeros(windowSize)
@@ -26,6 +27,7 @@ class StatsCollector:
         if windowSize > 0:
             size = windowSize
         self.window = np.zeros(size)
+        self.userDefinedStats.reset()
     ##
     # Gets the window size.
     ##

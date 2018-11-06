@@ -16,7 +16,7 @@ class ConvergenceConditionStrategyAbstract:
     # Checks if a queue network has converged.
     ##
     @abc.abstractmethod
-    def hasConverged(self, args):
+    def hasConverged(self, network, startFrom, deadline, epsilon):
         """Required Method"""
 
 
@@ -29,10 +29,8 @@ class STDVConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     ##
     # Gets in @args the standard deviation, average and epsilon and returns a boolean.
     ##
-    def hasConverged(self, args):
-        if len(args) != 3:
-            raise Exception("Missing arguments for convergence check")
-        stdv = args[0]
-        avg = args[1]
-        epsilon = args[2]
-        return float(avg) > 0.00001 and (float(stdv) / float(avg)) < float(epsilon)
+    def hasConverged(self, network, startFrom, deadline, epsilon):
+        avg = network.getStats().getAverage()
+        stdv = network.getStats().getStdv()
+        return (network.getTime() >= startFrom and float(avg) > 0.00001 and
+                (float(stdv) / float(avg)) < float(epsilon)) or network.getTime() > deadline
