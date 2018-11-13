@@ -1,12 +1,59 @@
-import datetime
-import numpy as np
 from QueueNetwork import QueueNetwork
-from StatsCollector import StatsCollector
+from StatsCollector import *
+import matplotlib.pyplot as plt
+import datetime
+from timeit import default_timer as timer
+
 
 # TODO: 1 server, miu = 0.5, sweep lambda up to lambda = 0.99*miu and for every lambda plot running average.
 #       Plot for all sims the converged average workload.
-# TODO: New convergence condition.
 # TODO: Check resolution of python's random capability using big numbers rule.
+########################################################################################################################
+#   STATS CLASS
+########################################################################################################################
+class AdjacentWindowsAndAverageWorkloadStats:
+    """User-defined stats class."""
+
+    ##
+    # Init MyStats with 2 statistics windows. The 2 windows are adjacent to each other. This is done in order to provide
+    #  a way to compare 2 windows.
+    ##
+    def __init__(self, windowSize, numOfRounds):
+        self.perLambdaStatsCollector = StatsCollector(windowSizes=[windowSize, windowSize])
+        self.wholeSimStatsCollector = Stats(windowSize=numOfRounds)
+        self.currentWindow = 0
+
+    def insertToWindow(self, value):
+        self.perLambdaStatsCollector.getStatNumber(self.currentWindow).insert(value)
+
+    def insertToAvgWorkloadWindow(self, value):
+        self.wholeSimStatsCollector.insert(value)
+
+    def resetWindows(self):
+        self.perLambdaStatsCollector.reset()
+        self.currentWindow = 0
+
+    def resetAll(self):
+        self.resetWindows()
+        self.wholeSimStatsCollector.reset()
+
+    def getCurrentWindowStats(self):
+        return self.perLambdaStatsCollector.getStatNumber(self.currentWindow)
+
+    def getPreviousWindowStats(self):
+        return self.perLambdaStatsCollector.getStatNumber(1 - self.currentWindow)
+
+    def getAvgWorkloadWindowStats(self):
+        return self.wholeSimStatsCollector
+
+    def switchWindows(self):
+        self.currentWindow = (self.currentWindow + 1) % 2
+        self.perLambdaStatsCollector.getStatNumber(self.currentWindow).reset()
+
+
+########################################################################################################################
+#   SIMULATION BUILDING
+########################################################################################################################
 class QueueNetworkSimulation:
     """Class for simulating a queue network in discrete time with a given dispatch policy."""
 
@@ -14,28 +61,29 @@ class QueueNetworkSimulation:
     # Initialize a queue network simulation given a size, services and initial workloads along with a dispatch policy
     # and a converge condition.
     # If only a size and policy were given, all queues will have service = 1, workload = 0.
+    # NOTICE: Edit this to set a different statistics class for init.
     ##
     def __init__(self, size, dispatchPolicyStrategy, convergenceConditionStrategy, plotStrategy=None, services=[],
-                 workloads=[], userStatsClass=None, inNetworkStatsClass=None, historyWindowSize=10000,
-                 verbose=False, T_max=10000000, convergencePrecision=0.05):
+                 workloads=[], historyWindowSize=10000, numOfRounds=1000,
+                 verbose=False, T_max=10000000):
         # Member fields init.
-        self.network = QueueNetwork(size, services=services, workloads=workloads, historyWindowSize=historyWindowSize,
-                                    userDefinedStats=inNetworkStatsClass)
+        self.network = QueueNetwork(size, services=services, workloads=workloads)
         self.dispatchPolicyStrategy = dispatchPolicyStrategy
         self.convergenceConditionStrategy = convergenceConditionStrategy
         self.plotStrategy = plotStrategy
-        self.statsCollector = StatsCollector(windowSize=historyWindowSize,userDefinedStatsClass=userStatsClass)
+        self.statsCollector = AdjacentWindowsAndAverageWorkloadStats(windowSize=historyWindowSize,
+                                                                     numOfRounds=numOfRounds)
         self.verbose = verbose
         self.T_max = T_max
         self.T_min = historyWindowSize
-        self.epsilon = convergencePrecision
+        self.numOfRounds = numOfRounds
 
     ##
     # Resets the simulation.
     ##
-    def reset(self, historyWindowSize=0):
-        self.network.flush(windowSize=historyWindowSize)
-        self.statsCollector.reset(windowSize=historyWindowSize)
+    def reset(self):
+        self.network.flush()
+        self.statsCollector.resetAll()
         if self.verbose:
             print "INFO:    Simulation reset."
 
@@ -65,9 +113,9 @@ class QueueNetworkSimulation:
 
     ##
     # Run the simulation.
+    # NOTICE: Edit this to make your simulation advance through time as you expect it to.
     ##
-    # FIXME: not generic at the moment...
-    def run(self, lambdaGranularity=1000):
+    def run(self):
         start_time = datetime.datetime.now()
         if self.verbose:
             print "INFO:    Starting simulation:"
@@ -76,39 +124,85 @@ class QueueNetworkSimulation:
             print "INFO:        starting in time slot           :   " + str(self.network.getTime())
             print "INFO:        policy                          :   " + self.dispatchPolicyStrategy.getName()
             print "INFO:        servers service per time slot   :   " + str(self.network.getServices())
-            print "INFO:        servers initial workload        :   " + str(self.network.getWorkloads())
+            print "INFO:        servers initial workload        :   " + str(self.network.getWorkloads()) + "\n"
 
         effectiveServiceRate = self.dispatchPolicyStrategy.getEffectiveServiceRate(self.network)
-        if effectiveServiceRate == 0:
-            arrivalRates = np.arange(0, 1, 1.0 / lambdaGranularity)
-        else:
-            arrivalRates = np.arange(0, effectiveServiceRate, 1.0 / lambdaGranularity)
+        arrivalRates = [0]*self.numOfRounds
+        if effectiveServiceRate != 0:
+            arrivalRates = np.arange(0, effectiveServiceRate, float(effectiveServiceRate) / float(self.numOfRounds))
+
+        # Round operating loop.
+        simTimeAnalysis = []
         for arrivalRate in arrivalRates:
             if self.verbose:
                 print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + str(100.0 * arrivalRate /
                                                                                       effectiveServiceRate) + "% ]"
                 print "INFO:    Round Started at  :   " + str(datetime.datetime.now())
+            start = timer()
+            runningAvg = [0]
+            # Time-slot operating loop.
             while self.network.getTime() < self.T_max:
+                # Determine whether a new job arrived or not.
                 newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
                 if newArrival:
                     queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
                     self.network.addWorkload(newWork, queues)
+                # End the time-slot.
                 self.network.endTimeSlot()
-                if arrivalRate == 0 or self.network.getTime() % self.T_min == 0 and \
-                        self.convergenceConditionStrategy.hasConverged(self.network, self.T_min, self.T_max,
-                                                                       self.epsilon):
-                    self.statsCollector.insert(self.network.getStats().getAverage())
+                # Gather stats of this time-slot.
+                self.statsCollector.insertToWindow(np.mean(self.network.getWorkloads()))
+                # Check for convergence.
+                if arrivalRate == 0:
+                    self.statsCollector.insertToAvgWorkloadWindow(0.0)
+                    self.statsCollector.resetWindows()
                     break
+                # Is it time to check for convergence?
+                elif self.network.getTime() >= self.T_min and \
+                        (self.network.getTime() + 1) % self.statsCollector.getCurrentWindowStats().getWindowSize() == 0:
+                    # If converged, record stats and end round.
+                    if self.convergenceConditionStrategy.hasConverged(self.network,
+                            [self.statsCollector.getCurrentWindowStats().getWindow(),
+                             self.statsCollector.getPreviousWindowStats().getWindow()],
+                            self.T_min, self.T_max):
+                        self.statsCollector.insertToAvgWorkloadWindow(np.mean(self.network.getWorkloads()))
+                        self.statsCollector.resetWindows()
+                        break
+                    # If didn't converge, switch the windows.
+                    self.statsCollector.switchWindows()
+
+                # calculate the next average workload in the avg workload vector
+                def calcAvgWorkLoad(T, AvgWorkLoad_prev, TotalWorkLoad):
+                    T = float(T)
+                    AvgWorkLoad_prev = float(AvgWorkLoad_prev)
+                    TotalWorkLoad = float(TotalWorkLoad)
+                    return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
+                t = self.network.getTime()
+                runningAvg.append(calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
+                # Advance simulation time.
                 self.network.advanceTimeSlot()
+
             if self.verbose:
                 print "INFO:    Round ended at  :   " + str(datetime.datetime.now())
-                print "INFO:    Time slot       :   " + str(self.network.getTime())
+                print "INFO:    Time slot       :   " + str(self.network.getTime()) + "\n"
+            end = timer()   # Time in seconds
+            simTimeAnalysis.append(float(end) - float(start))
+            # plt.plot(runningAvg)
+            # plt.show()
             self.network.reset()
 
         end_time = datetime.datetime.now()
         if self.verbose:
             print "INFO:    Simulation ended at:"
             print "INFO:        time                            :   " + str(end_time)
+
+        # FIXME: Move the plotting to a plot strategy.
+        plt.plot(arrivalRates, self.statsCollector.getAvgWorkloadWindowStats().getWindow())
+        plt.show()
+
+        plt.plot(simTimeAnalysis, 'rx')
+        plt.xlabel("arrival rate as % of service effective rate")
+        plt.ylabel("simulation time [sec]")
+        plt.show()
 
     ##
     # Load a network image to the simulation.
@@ -141,6 +235,21 @@ class QueueNetworkSimulation:
 ########################################################################################################################
 import DispatchPolicyStrategy
 import ConvergenceConditionStrategy
-sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(10, 0.25, 0.75),
-                             ConvergenceConditionStrategy.STDVConvergenceStrategy(), verbose=True)
-sim.run(lambdaGranularity=5)
+
+# Operate your simulation here.
+
+# Init simulation instance.
+# n=1
+# dispatch policy = one queue, fixed service rate
+#   alpha=10
+#   miu=0.5
+#   p=0.75
+# convergence condition = window delta percent change.
+#   precision = 0.05 (5%)
+# sweep over 100 arrival rates.
+# statistics history window size = 50000
+#
+sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, miu=0.5, p=0.75),
+                             ConvergenceConditionStrategy.DeltaConvergenceStrategy(epsilon=0.05),
+                             verbose=True, numOfRounds=100, historyWindowSize=50000)
+sim.run()

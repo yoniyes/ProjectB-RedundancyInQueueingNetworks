@@ -1,9 +1,12 @@
 import numpy as np
 import math
 
-# FIXME: Maybe a composite design pattern? Or just inheritance? Current design is bad!
-class StatsCollector:
-    """Class for storing statistics and information about a queue network."""
+##
+# This class is a building block for stats. See example below.
+# It's recommended that this should be as a member of a user-defined statistics class.
+##
+class Stats:
+    """Class for storing statistics."""
 
     ##
     # Initialize a statistics instance.
@@ -13,11 +16,10 @@ class StatsCollector:
     # Another way to achieve this is to create a new class that instantiates a StatsCollector as a member.
     # The initial window will be filled with 0's.
     ##
-    def __init__(self, windowSize=10000, userDefinedStatsClass=None):
+    def __init__(self, windowSize=10000):
         if windowSize <= 0:
             raise Exception("Invalid window size of" + str(windowSize))
         self.window = np.zeros(windowSize)
-        self.userDefinedStats = userDefinedStatsClass
 
     ##
     # Reset the stats window.
@@ -27,7 +29,7 @@ class StatsCollector:
         if windowSize > 0:
             size = windowSize
         self.window = np.zeros(size)
-        self.userDefinedStats.reset()
+
     ##
     # Gets the window size.
     ##
@@ -38,7 +40,7 @@ class StatsCollector:
     # Gets the window average.
     ##
     def getAverage(self):
-        return float(np.sum(self.window)) / float(len(self.window))
+        return np.mean(self.window)
 
     ##
     # Gets the window standard deviation.
@@ -64,8 +66,26 @@ class StatsCollector:
     def getWindow(self):
         return self.window
 
-    ##
-    # Access the user-defined stats class.
-    ##
-    def getUserDefinedStats(self):
-        return self.userDefinedStats
+
+##
+# This should be as a member of a user-defined statistics class.
+##
+class StatsCollector:
+    """Class for storing statistics and information about a queue network."""
+
+    def __init__(self, windowSizes=[]):
+        _sizes = windowSizes
+        if not _sizes:
+            _sizes = [10000]
+        self.stats = [Stats(windowSize=size) for size in _sizes]
+
+    def getStatNumber(self, num):
+        if num < 0 or num >= len(self.stats):
+            return None
+        return self.stats[num]
+
+    def reset(self, windowSizes=[]):
+        _sizes = windowSizes
+        if not _sizes:
+            _sizes = [0]*len(self.stats)
+        [self.stats[i].reset(windowSize=_sizes[i]) for i in range(len(_sizes))]
