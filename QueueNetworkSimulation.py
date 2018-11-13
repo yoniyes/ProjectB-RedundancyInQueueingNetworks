@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import datetime
 from timeit import default_timer as timer
 
+import cProfile
 
-# TODO: 1 server, miu = 0.5, sweep lambda up to lambda = 0.99*miu and for every lambda plot running average.
+
+# TODO: 1 server, mu = 0.5, sweep lambda up to lambda = 0.99*mu and for every lambda plot running average.
 #       Plot for all sims the converged average workload.
 # TODO: Check resolution of python's random capability using big numbers rule.
 ########################################################################################################################
@@ -139,12 +141,13 @@ class QueueNetworkSimulation:
                                                                                       effectiveServiceRate) + "% ]"
                 print "INFO:    Round Started at  :   " + str(datetime.datetime.now())
             start = timer()
-            runningAvg = [0]
+            # runningAvg = [0]
             # Time-slot operating loop.
             while self.network.getTime() < self.T_max:
                 # Determine whether a new job arrived or not.
-                newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
-                if newArrival:
+                # newArrival = np.random.binomial(1, arrivalRate)
+                # newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
+                if np.random.binomial(1, arrivalRate) == 1:
                     queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
                     self.network.addWorkload(newWork, queues)
                 # End the time-slot.
@@ -170,14 +173,14 @@ class QueueNetworkSimulation:
                     # If didn't converge, switch the windows.
                     self.statsCollector.switchWindows()
 
-                # calculate the next average workload in the avg workload vector
-                def calcAvgWorkLoad(T, AvgWorkLoad_prev, TotalWorkLoad):
-                    T = float(T)
-                    AvgWorkLoad_prev = float(AvgWorkLoad_prev)
-                    TotalWorkLoad = float(TotalWorkLoad)
-                    return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
-                t = self.network.getTime()
-                runningAvg.append(calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
+                # # calculate the next average workload in the avg workload vector
+                # def calcAvgWorkLoad(T, AvgWorkLoad_prev, TotalWorkLoad):
+                #     T = float(T)
+                #     AvgWorkLoad_prev = float(AvgWorkLoad_prev)
+                #     TotalWorkLoad = float(TotalWorkLoad)
+                #     return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
+                # t = self.network.getTime()
+                # runningAvg.append(calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
                 # Advance simulation time.
                 self.network.advanceTimeSlot()
 
@@ -242,14 +245,23 @@ import ConvergenceConditionStrategy
 # n=1
 # dispatch policy = one queue, fixed service rate
 #   alpha=10
-#   miu=0.5
+#   mu=0.5
 #   p=0.75
 # convergence condition = window delta percent change.
 #   precision = 0.05 (5%)
 # sweep over 100 arrival rates.
 # statistics history window size = 50000
-#
-sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, miu=0.5, p=0.75),
+
+# d=[1, 2, 4]
+# sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.FixedSubsetsStrategy(d[0], 10, 1000, 0.75),
+#                              ConvergenceConditionStrategy.DeltaConvergenceStrategy(epsilon=0.05),
+#                              verbose=True, numOfRounds=100, historyWindowSize=50000)
+# for redundancy in d:
+#     sim.setDispatchPolicy(DispatchPolicyStrategy.FixedSubsetsStrategy(redundancy, 10, 1000, 0.75))
+#     sim.run()
+
+sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, mu=0.5, p=0.75),
                              ConvergenceConditionStrategy.DeltaConvergenceStrategy(epsilon=0.05),
-                             verbose=True, numOfRounds=100, historyWindowSize=50000)
-sim.run()
+                             verbose=True, numOfRounds=100, historyWindowSize=10000)
+cProfile.run(sim.run())
+

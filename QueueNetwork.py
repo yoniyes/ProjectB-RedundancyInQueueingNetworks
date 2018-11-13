@@ -1,40 +1,7 @@
 from Queue import Queue
-from StatsCollector import StatsCollector
 import numpy as np
 
 
-########################################################################################################################
-#   USER DEFINED STATS
-########################################################################################################################
-# TODO: This should probably be an abstract interface...
-class RunningAverageStats:
-    """Collects running average workload for a network."""
-
-    def __init__(self, size):
-        self.size = size
-        self.values = []
-
-    def insert(self, args):
-        window = args[0]
-        time = args[1]
-        if time > 0 and time % self.size == 0:
-            self.values.append(float(np.sum(window)) / float(self.size))
-
-    def get(self):
-        return self.values
-
-    def reset(self, windowSize=0):
-        if windowSize > 0:
-            self.size = windowSize
-        self.values = []
-
-    def name(self):
-        return """running average"""
-
-
-########################################################################################################################
-#   CLASS
-########################################################################################################################
 class QueueNetwork:
     """Class for operating a queue network in discrete time."""
 
@@ -73,17 +40,19 @@ class QueueNetwork:
     def reset(self, services=[]):
         _services = services
         if len(_services) == 0:
-            _services = [1 for i in range(self.getSize())]
+            _services = [1]*self.getSize()
         if len(_services) != self.getSize():
             raise Exception("Services vector size mismatch with queue network size while trying to reset")
-        [self.queues[i].reset(_services[i]) for i in range(self.getSize())]
+        for i in range(self.getSize()):
+            self.queues[i].reset(_services[i])
         self.time = 0
 
     ##
     # Resets all queues to workload of 0.
     ##
     def flush(self):
-        [q.reset(q.getService()) for q in self.queues]
+        for q in self.queues:
+            q.reset(q.getService())
         self.time = 0
 
     ##
@@ -135,7 +104,8 @@ class QueueNetwork:
         for i in range(self.size):
             if int(services[i]) < 1:
                 raise Exception("Illegal service rates for setServices")
-        [self.queues[i].setService(int(services[i])) for i in range(self.size)]
+        for i in range(self.size):
+            self.queues[i].setService(int(services[i]))
 
     ##
     # Sets the workloads to the given sizes. Workloads are integers and are >= 0.
@@ -146,7 +116,8 @@ class QueueNetwork:
         for i in range(self.size):
             if int(workloads[i]) < 0:
                 raise Exception("Illegal workloads for setWorkloads")
-        [self.queues[i].setWorkload(int(workloads[i])) for i in range(self.size)]
+        for i in range(self.size):
+            self.queues[i].setWorkload(int(workloads[i]))
 
     ##
     # Adds the given workloads to the specified queues.
@@ -165,18 +136,20 @@ class QueueNetwork:
         _workloads = [int(workload) for workload in workloads]
         if len(_workloads) != len(_index):
             raise Exception("Length of workloads doesn't match length of indices in addWorkload")
-        [self.queues[_index[i]].addWorkload(_workloads[i]) for i in range(len(_index))]
+        for i in range(len(_index)):
+            self.queues[_index[i]].addWorkload(_workloads[i])
 
     ##
     # Reduces the amount of workload in every queue by its service.
     ##
     def endTimeSlot(self):
-        [q.endTimeSlot() for q in self.queues]
+        for q in self.queues:
+            q.endTimeSlot()
 
     ##
     # Increments the time that passed.
     ##
     def advanceTimeSlot(self):
-        # Advance.
-        [q.advanceTimeSlot() for q in self.queues]
+        for q in self.queues:
+            q.advanceTimeSlot()
         self.time += 1

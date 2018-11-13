@@ -47,6 +47,10 @@ class STDVConvergenceStrategy(ConvergenceConditionStrategyAbstract):
 class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     """Checks if (window delta / average) is small enough."""
 
+    def __init__(self, epsilon=0.05):
+        super(DeltaConvergenceStrategy, self).__init__(epsilon=epsilon)
+        self.hit = False
+
     ##
     # Gets stats, edge times and epsilon and returns a boolean.
     # @stats is a list of 2 lists. The first element is the current window and the second is the previous.
@@ -56,6 +60,10 @@ class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
         prevWindow = stats[1]
         avgPrev = np.mean(prevWindow)
         avgCurr = np.mean(currWindow)
-        return network.getTime() > deadline or (network.getTime() >= startFrom and float(avgPrev) > 0.00001 and
+        if network.getTime() > deadline or (network.getTime() >= startFrom and float(avgPrev) > 0.00001 and
                                                 math.fabs((float(avgCurr) - float(avgPrev)) / float(avgPrev)) <
-                                                float(self.epsilon))
+                                                float(self.epsilon)):
+            if self.hit:
+                return True
+            self.hit = True
+            return False

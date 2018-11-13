@@ -81,35 +81,39 @@ class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
     """A fixed service rate dispatching policy."""
 
     ##
-    # Initialize policy with @alpha being small workload for a job, @miu being the total service rate and @p being the
+    # Initialize policy with @alpha being small workload for a job, @mu being the total service rate and @p being the
     # probability to choose alpha.
     ##
-    def __init__(self, alpha, miu, p):
+    def __init__(self, alpha, mu, p):
         self.alpha = alpha
-        self.beta = ((1.0/miu) - float(alpha)*p) / (1.0 - p)
+        self.beta = ((1.0/mu) - float(alpha)*p) / (1.0 - p)
         self.p = p
-        self.miu = miu
+        self.mu = mu
 
     ##
     # Randomize arriving job's workload.
     ##
     def getDispatch(self, network):
-        return [0], [np.random.choice([self.alpha, self.beta], p=[self.p, 1.0 - self.p])]
+        workload = self.alpha
+        if np.random.binomial(1, self.p) == 0:
+            workload = self.beta
+        return [0], [workload]
+        # return [0], [np.random.choice([self.alpha, self.beta], p=[self.p, 1.0 - self.p])]
 
     def getName(self):
         return "one queue fixed service rate"
 
     def getEffectiveServiceRate(self, network):
-        return self.miu
+        return self.mu
 
     def setP(self, p):
         if p < 0 or p > 1:
             raise Exception("Invalid probability given")
         self.p = p
-        self.beta = ((1.0/self.miu) - float(self.alpha)*p) / (1.0 - p)
+        self.beta = ((1.0/self.mu) - float(self.alpha)*p) / (1.0 - p)
 
     def setBeta(self, beta):
         if beta <= self.alpha:
             raise Exception("Invalid beta, should be greater than alpha")
-        self.p = (beta - (1.0/self.miu)) / (beta - self.alpha)
+        self.p = (beta - (1.0/self.mu)) / (beta - self.alpha)
         self.beta = beta

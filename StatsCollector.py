@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+
 ##
 # This class is a building block for stats. See example below.
 # It's recommended that this should be as a member of a user-defined statistics class.
@@ -58,6 +59,7 @@ class Stats:
     # Slides the window by 1 and inserts a new value.
     ##
     def insert(self, value):
+        #FIXME: change this! No append or delete!
         self.window = np.delete(np.append(self.window, value), 0)
 
     ##
@@ -88,4 +90,5 @@ class StatsCollector:
         _sizes = windowSizes
         if not _sizes:
             _sizes = [0]*len(self.stats)
-        [self.stats[i].reset(windowSize=_sizes[i]) for i in range(len(_sizes))]
+        for i in range(len(_sizes)):
+            self.stats[i].reset(windowSize=_sizes[i])
