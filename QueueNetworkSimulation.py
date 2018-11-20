@@ -311,7 +311,7 @@ import ConvergenceConditionStrategy
 #     sim.run()
 
 sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, mu=0.05, p=0.75),
-                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
-                             verbose=True, numOfRounds=100, historyWindowSize=50000, T_min=100000)
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
+                             verbose=True, numOfRounds=100, historyWindowSize=10000, T_min=100000)
 cProfile.run('sim.run()')
 
