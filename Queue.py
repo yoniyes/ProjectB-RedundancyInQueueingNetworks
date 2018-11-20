@@ -1,3 +1,5 @@
+import unittest as ut
+
 class Queue:
     """This class describes a queue in a network running in discrete time with the ability to add and
     remove workload."""
@@ -70,3 +72,47 @@ class Queue:
     ##
     def advanceTimeSlot(self):
         self.timePassed += 1
+
+
+########################################################################################################################
+#   TEST
+########################################################################################################################
+class TestQueue(ut.TestCase):
+    def runTest(self):
+        with self.assertRaises(Exception):
+            Queue(service=0)
+        with self.assertRaises(Exception):
+            Queue(service=-1)
+        with self.assertRaises(Exception):
+            Queue(workload=-1)
+        q = Queue()
+        self.assertEqual(q.getWorkload(), 0)
+        self.assertEqual(q.getService(), 1)
+        q.setWorkload(100)
+        self.assertEqual(q.getWorkload(), 100)
+        q.setService(2)
+        self.assertEqual(q.getService(), 2)
+        with self.assertRaises(Exception):
+            q.setWorkload(-1)
+        with self.assertRaises(Exception):
+            q.setService(0)
+        q.addWorkload(100)
+        self.assertEqual(q.getWorkload(), 200)
+        q.endTimeSlot()
+        self.assertEqual(q.getWorkload(), 198)
+        q.addWorkload(-7)
+        self.assertEqual(q.getWorkload(), 191)
+        q.addWorkload(-192)
+        self.assertEqual(q.getWorkload(), 0)
+        q.endTimeSlot()
+        self.assertEqual(q.getWorkload(), 0)
+        q.addWorkload(10)
+        self.assertEqual(q.getWorkload(), 10)
+        q.reset()
+        self.assertEqual(q.getService(), 1)
+        self.assertEqual(q.getWorkload(), 0)
+        print "TestQueue: OK."
+
+
+if __name__ == '__main__':
+    ut.main()

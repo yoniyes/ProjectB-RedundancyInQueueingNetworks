@@ -1,5 +1,6 @@
 from Queue import Queue
 import numpy as np
+import unittest as ut
 
 
 class QueueNetwork:
@@ -153,3 +154,69 @@ class QueueNetwork:
         for q in self.queues:
             q.advanceTimeSlot()
         self.time += 1
+
+
+########################################################################################################################
+#   TEST
+########################################################################################################################
+class TestQueueNetwork(ut.TestCase):
+    def runTest(self):
+        with self.assertRaises(Exception):
+            QueueNetwork(size=0)
+        with self.assertRaises(Exception):
+            QueueNetwork(size=-1)
+        with self.assertRaises(Exception):
+            QueueNetwork(size=2, services=[1, 0])
+        with self.assertRaises(Exception):
+            QueueNetwork(size=2, workloads=[1, -2])
+        q = QueueNetwork(size=2)
+        self.assertEqual(q.getSize(), 2)
+        wlds = q.getWorkloads()
+        self.assertEqual(wlds, [0] * len(wlds))
+        self.assertEqual(q.getServices(), [1] * len(wlds))
+        q.setWorkloads([100, 200])
+        wlds = q.getWorkloads()
+        self.assertEqual(wlds, [100, 200])
+        q.setServices([1, 2])
+        self.assertEqual(q.getServices(), [1, 2])
+        with self.assertRaises(Exception):
+            q.setWorkloads([10, -1])
+        with self.assertRaises(Exception):
+            q.setServices([0, 1])
+        self.assertEqual(q.getTime(), 0)
+        q.setTime(10)
+        self.assertEqual(q.getTime(), 10)
+        q. setTime(0)
+        self.assertEqual(q.getTime(), 0)
+        self.assertEqual(q.getTotalWorkload(), 300)
+        q.addWorkload(index=range(len(wlds)), workloads=[-199] * len(wlds))
+        self.assertEqual(q.getWorkloads(), [0, 1])
+        self.assertEqual(q.getTotalWorkload(), 1)
+        q.endTimeSlot()
+        self.assertEqual(q.getWorkloads(), [0] * len(wlds))
+        q.addWorkload([-7] * len(wlds))
+        self.assertEqual(q.getWorkloads(), [0] * len(wlds))
+        q.addWorkload([123] * len(wlds))
+        self.assertEqual(q.getWorkloads(), [123] * len(wlds))
+        q.endTimeSlot()
+        self.assertEqual(q.getWorkloads(), [122, 121])
+        q.addWorkload([10] * len(wlds))
+        self.assertEqual(q.getWorkloads(), [132, 131])
+        q.advanceTimeSlot()
+        self.assertEqual(q.getTime(), 1)
+        q.flush()
+        self.assertEqual(q.getServices(), [1, 2])
+        self.assertEqual(q.getWorkloads(), [0] * len(wlds))
+        self.assertEqual(q.getTime(), 0)
+        self.assertEqual(q.getTotalWorkload(), 0)
+        q.reset()
+        self.assertEqual(q.getServices(), [1] * len(wlds))
+        self.assertEqual(q.getWorkloads(), [0] * len(wlds))
+        self.assertEqual(q.getTime(), 0)
+        self.assertEqual(q.getTotalWorkload(), 0)
+        print "TestQueueNetwork: OK."
+
+
+if __name__ == '__main__':
+    ut.main()
+

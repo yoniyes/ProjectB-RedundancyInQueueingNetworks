@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import unittest as ut
 
 
 ##
@@ -21,6 +22,8 @@ class Stats:
         if windowSize <= 0:
             raise Exception("Invalid window size of" + str(windowSize))
         self.window = np.zeros(windowSize)
+        self.nextOpenSlot = 0
+        self.firstSlot = None
 
     ##
     # Reset the stats window.
@@ -30,6 +33,8 @@ class Stats:
         if windowSize > 0:
             size = windowSize
         self.window = np.zeros(size)
+        self.nextOpenSlot = 0
+        self.firstSlot = None
 
     ##
     # Gets the window size.
@@ -47,7 +52,7 @@ class Stats:
     # Gets the window standard deviation.
     ##
     def getStdv(self):
-        return math.sqrt(np.var(self.window))
+        return np.std(self.window)
 
     ##
     # Gets the window variance.
@@ -59,8 +64,14 @@ class Stats:
     # Slides the window by 1 and inserts a new value.
     ##
     def insert(self, value):
-        #FIXME: change this! No append or delete!
-        self.window = np.delete(np.append(self.window, value), 0)
+        # #FIXME: change this! No append or delete!
+        # self.window = np.delete(np.append(self.window, value), 0)
+        if self.firstSlot == self.nextOpenSlot:
+            self.firstSlot = (self.firstSlot + 1) % self.getWindowSize()
+        elif self.firstSlot is None:
+            self.firstSlot = self.nextOpenSlot
+        self.window[self.nextOpenSlot] = value
+        self.nextOpenSlot = (self.nextOpenSlot + 1) % self.getWindowSize()
 
     ##
     # Get the whole window history.
@@ -92,3 +103,47 @@ class StatsCollector:
             _sizes = [0]*len(self.stats)
         for i in range(len(_sizes)):
             self.stats[i].reset(windowSize=_sizes[i])
+
+
+########################################################################################################################
+#   TEST
+########################################################################################################################
+class TestStats(ut.TestCase):
+    def runTest(self):
+        # with self.assertRaises(Exception):
+        #     Queue(service=0)
+        # with self.assertRaises(Exception):
+        #     Queue(service=-1)
+        # with self.assertRaises(Exception):
+        #     Queue(workload=-1)
+        # q = Queue()
+        # self.assertEqual(q.getWorkload(), 0)
+        # self.assertEqual(q.getService(), 1)
+        # q.setWorkload(100)
+        # self.assertEqual(q.getWorkload(), 100)
+        # q.setService(2)
+        # self.assertEqual(q.getService(), 2)
+        # with self.assertRaises(Exception):
+        #     q.setWorkload(-1)
+        # with self.assertRaises(Exception):
+        #     q.setService(0)
+        # q.addWorkload(100)
+        # self.assertEqual(q.getWorkload(), 200)
+        # q.endTimeSlot()
+        # self.assertEqual(q.getWorkload(), 198)
+        # q.addWorkload(-7)
+        # self.assertEqual(q.getWorkload(), 191)
+        # q.addWorkload(-192)
+        # self.assertEqual(q.getWorkload(), 0)
+        # q.endTimeSlot()
+        # self.assertEqual(q.getWorkload(), 0)
+        # q.addWorkload(10)
+        # self.assertEqual(q.getWorkload(), 10)
+        # q.reset()
+        # self.assertEqual(q.getService(), 1)
+        # self.assertEqual(q.getWorkload(), 0)
+        print "TestStats: OK."
+
+
+if __name__ == '__main__':
+    ut.main()
