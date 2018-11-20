@@ -113,6 +113,13 @@ class QueueNetworkSimulation:
         if self.verbose:
             print "INFO:    Simulation plotting scheme set."
 
+    # calculate the next average workload in the avg workload vector
+    def calcAvgWorkLoad(self, T, AvgWorkLoad_prev, TotalWorkLoad):
+        T = float(T)
+        AvgWorkLoad_prev = float(AvgWorkLoad_prev)
+        TotalWorkLoad = float(TotalWorkLoad)
+        return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
+
     ##
     # Run the simulation.
     # NOTICE: Edit this to make your simulation advance through time as you expect it to.
@@ -141,7 +148,7 @@ class QueueNetworkSimulation:
                                                                                       effectiveServiceRate) + "% ]"
                 print "INFO:    Round Started at  :   " + str(datetime.datetime.now())
             start = timer()
-            # runningAvg = [0]
+            runningAvg = [0]
             # Time-slot operating loop.
             while self.network.getTime() < self.T_max:
                 # Determine whether a new job arrived or not.
@@ -149,7 +156,7 @@ class QueueNetworkSimulation:
                 # newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
                 if np.random.binomial(1, arrivalRate) == 1:
                     queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
-                    self.network.addWorkload(newWork, queues)
+                    self.network.addWorkload(queues, newWork)
                 # End the time-slot.
                 self.network.endTimeSlot()
                 # Gather stats of this time-slot.
@@ -167,20 +174,15 @@ class QueueNetworkSimulation:
                             [self.statsCollector.getCurrentWindowStats().getWindow(),
                              self.statsCollector.getPreviousWindowStats().getWindow()],
                             self.T_min, self.T_max):
-                        self.statsCollector.insertToAvgWorkloadWindow(np.mean(self.network.getWorkloads()))
+                        self.statsCollector.insertToAvgWorkloadWindow(self.calcAvgWorkLoad(t+1, runningAvg[t],
+                                                                                      self.network.getTotalWorkload()))
                         self.statsCollector.resetWindows()
                         break
                     # If didn't converge, switch the windows.
                     self.statsCollector.switchWindows()
 
-                # # calculate the next average workload in the avg workload vector
-                # def calcAvgWorkLoad(T, AvgWorkLoad_prev, TotalWorkLoad):
-                #     T = float(T)
-                #     AvgWorkLoad_prev = float(AvgWorkLoad_prev)
-                #     TotalWorkLoad = float(TotalWorkLoad)
-                #     return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
-                # t = self.network.getTime()
-                # runningAvg.append(calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
+                t = self.network.getTime()
+                runningAvg.append(self.calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
                 # Advance simulation time.
                 self.network.advanceTimeSlot()
 
@@ -189,8 +191,8 @@ class QueueNetworkSimulation:
                 print "INFO:    Time slot       :   " + str(self.network.getTime()) + "\n"
             end = timer()   # Time in seconds
             simTimeAnalysis.append(float(end) - float(start))
-            # plt.plot(runningAvg)
-            # plt.show()
+            plt.plot(runningAvg)
+            plt.show()
             self.network.reset()
 
         end_time = datetime.datetime.now()
@@ -262,6 +264,6 @@ import ConvergenceConditionStrategy
 
 sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, mu=0.5, p=0.75),
                              ConvergenceConditionStrategy.DeltaConvergenceStrategy(epsilon=0.05),
-                             verbose=True, numOfRounds=100, historyWindowSize=10000)
+                             verbose=True, numOfRounds=10, historyWindowSize=10000)
 cProfile.run('sim.run()')
 

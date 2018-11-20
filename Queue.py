@@ -65,8 +65,8 @@ class Queue:
     # Reduces the amount of workload in Queue by service.
     ##
     def endTimeSlot(self):
-        self.addWorkload(-self.getService())
-
+        # self.addWorkload(-self.getService())
+        self.addWorkload(-1)
     ##
     # Increments the time that passed.
     ##

@@ -125,20 +125,19 @@ class QueueNetwork:
     # If no index is given, workloads size must be self.getSize() and will be added to all queues accordingly.
     # Notice: this method can be used to decrease the workload if passing a negative value.
     ##
-    def addWorkload(self, workloads, index=[]):
-        _index = []
-        if len(index) == 0:
-            _index = range(self.getSize())
-        else:
-            for i in range(len(index)):
-                if int(index[i]) < 0 or int(index[i]) > self.size - 1:
-                    raise Exception("Illegal index for addWorkload")
-                _index.append(int(index[i]))
+    def addWorkload(self, chosen, workloads):
+        if len(chosen) < 1 or len(chosen) != len(workloads):
+            raise Exception("Illegal size of queues or workloads for addWorkload")
+        # else:
+        #     for i in range(len(queues)):
+        #         if int(queues[i]) < 0 or int(queues[i]) > self.size - 1:
+        #             raise Exception("Illegal index for addWorkload")
+        #         _index.append(int(queues[i]))
         _workloads = [int(workload) for workload in workloads]
-        if len(_workloads) != len(_index):
-            raise Exception("Length of workloads doesn't match length of indices in addWorkload")
-        for i in range(len(_index)):
-            self.queues[_index[i]].addWorkload(_workloads[i])
+        if np.sum(workloads) != np.sum(_workloads):
+            raise Exception("OUCH!!!")
+        for i in range(len(chosen)):
+            self.queues[chosen[i]].addWorkload(_workloads[i])
 
     ##
     # Reduces the amount of workload in every queue by its service.

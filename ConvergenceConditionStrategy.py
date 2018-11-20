@@ -56,14 +56,11 @@ class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     # @stats is a list of 2 lists. The first element is the current window and the second is the previous.
     ##
     def hasConverged(self, network, stats, startFrom, deadline):
+        # return network.getTime() >= 100000
         currWindow = stats[0]
         prevWindow = stats[1]
         avgPrev = np.mean(prevWindow)
         avgCurr = np.mean(currWindow)
-        if network.getTime() > deadline or (network.getTime() >= startFrom and float(avgPrev) > 0.00001 and
+        return network.getTime() > deadline or (network.getTime() >= startFrom and float(avgPrev) > 0.00001 and
                                                 math.fabs((float(avgCurr) - float(avgPrev)) / float(avgPrev)) <
-                                                float(self.epsilon)):
-            if self.hit:
-                return True
-            self.hit = True
-            return False
+                                                float(self.epsilon))
