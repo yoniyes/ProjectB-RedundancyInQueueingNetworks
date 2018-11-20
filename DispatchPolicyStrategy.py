@@ -85,6 +85,8 @@ class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
     # probability to choose alpha.
     ##
     def __init__(self, alpha, mu, p):
+        if 1.0 / mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
         self.alpha = alpha
         self.beta = ((1.0/mu) - float(alpha)*p) / (1.0 - p)
         self.p = p

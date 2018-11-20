@@ -42,10 +42,14 @@ class Queue:
     # Notice: this method can be used to decrease the workload if passing a negative value.
     ##
     def addWorkload(self, workload):
+        notEmpty = 1
+        if self.workload == 0:
+            notEmpty = 0
         if self.workload + int(workload) < 0:
             self.workload = 0
         else:
             self.workload += int(workload)
+        return notEmpty
 
     ##
     # Returns the current service.
@@ -65,8 +69,9 @@ class Queue:
     # Reduces the amount of workload in Queue by service.
     ##
     def endTimeSlot(self):
-        # self.addWorkload(-self.getService())
-        self.addWorkload(-1)
+        return self.addWorkload(-self.getService())
+        # return self.addWorkload(-1)
+
     ##
     # Increments the time that passed.
     ##

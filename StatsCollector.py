@@ -64,7 +64,7 @@ class Stats:
     # Slides the window by 1 and inserts a new value.
     ##
     def insert(self, value):
-        # #FIXME: change this! No append or delete!
+        # FIXME: change this! No append or delete!
         # self.window = np.delete(np.append(self.window, value), 0)
         if self.firstSlot == self.nextOpenSlot:
             self.firstSlot = (self.firstSlot + 1) % self.getWindowSize()

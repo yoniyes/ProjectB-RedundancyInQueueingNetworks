@@ -32,6 +32,7 @@ class QueueNetwork:
 
         # Member fields init.
         self.queues = [Queue(_services[i], _workloads[i]) for i in range(_size)]
+        self.totalWorkload = np.sum(_workloads)
         self.size = _size
         self.time = 0
 
@@ -47,6 +48,8 @@ class QueueNetwork:
         for i in range(self.getSize()):
             self.queues[i].reset(_services[i])
         self.time = 0
+        self.totalWorkload = 0
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads()))
 
     ##
     # Resets all queues to workload of 0.
@@ -55,6 +58,8 @@ class QueueNetwork:
         for q in self.queues:
             q.reset(q.getService())
         self.time = 0
+        self.totalWorkload = 0
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads()))
 
     ##
     # Get the time passed in the network.
@@ -88,7 +93,8 @@ class QueueNetwork:
     # Returns the total workload in the network.
     ##
     def getTotalWorkload(self):
-        return np.sum(self.getWorkloads())
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads()))
+        return self.totalWorkload
 
     ##
     # Returns the number of queues in the network.
@@ -117,8 +123,12 @@ class QueueNetwork:
         for i in range(self.size):
             if int(workloads[i]) < 0:
                 raise Exception("Illegal workloads for setWorkloads")
+        self.totalWorkload = 0
         for i in range(self.size):
             self.queues[i].setWorkload(int(workloads[i]))
+            self.totalWorkload += int(workloads[i])
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads()))
+
 
     ##
     # Adds the given workloads to the specified queues.
@@ -128,23 +138,21 @@ class QueueNetwork:
     def addWorkload(self, chosen, workloads):
         if len(chosen) < 1 or len(chosen) != len(workloads):
             raise Exception("Illegal size of queues or workloads for addWorkload")
-        # else:
-        #     for i in range(len(queues)):
-        #         if int(queues[i]) < 0 or int(queues[i]) > self.size - 1:
-        #             raise Exception("Illegal index for addWorkload")
-        #         _index.append(int(queues[i]))
         _workloads = [int(workload) for workload in workloads]
         if np.sum(workloads) != np.sum(_workloads):
             raise Exception("OUCH!!!")
         for i in range(len(chosen)):
             self.queues[chosen[i]].addWorkload(_workloads[i])
+            self.totalWorkload += _workloads[i]
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads())) + " added = " + str(_workloads)
 
     ##
     # Reduces the amount of workload in every queue by its service.
     ##
     def endTimeSlot(self):
         for q in self.queues:
-            q.endTimeSlot()
+            self.totalWorkload -= q.endTimeSlot()
+        # assert self.totalWorkload == np.sum(self.getWorkloads()), "lhs = " + str(self.totalWorkload) + " rhs = " + str(np.sum(self.getWorkloads()))
 
     ##
     # Increments the time that passed.

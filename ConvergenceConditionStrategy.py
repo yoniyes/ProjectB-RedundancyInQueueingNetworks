@@ -64,3 +64,18 @@ class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
         return network.getTime() > deadline or (network.getTime() >= startFrom and float(avgPrev) > 0.00001 and
                                                 math.fabs((float(avgCurr) - float(avgPrev)) / float(avgPrev)) <
                                                 float(self.epsilon))
+
+
+class VarianceConvergenceStrategy(ConvergenceConditionStrategyAbstract):
+    """Checks if variance of window is small enough."""
+
+    def __init__(self, epsilon=0.05):
+        super(VarianceConvergenceStrategy, self).__init__(epsilon=epsilon)
+
+    ##
+    # Gets stats, edge times and epsilon and returns a boolean.
+    # @stats is a list of 1 list. The first element is the window.
+    ##
+    def hasConverged(self, network, stats, startFrom, deadline):
+        runningAvg = stats[0]
+        return network.getTime() > deadline or (network.getTime() >= startFrom and np.var(runningAvg) < self.epsilon)
