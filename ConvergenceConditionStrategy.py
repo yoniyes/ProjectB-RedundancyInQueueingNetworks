@@ -79,3 +79,17 @@ class VarianceConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     def hasConverged(self, network, stats, startFrom, deadline):
         runningAvg = stats[0]
         return network.getTime() > deadline or (network.getTime() >= startFrom and np.var(runningAvg) < self.epsilon)
+
+
+class RunForXSlotsConvergenceStrategy(ConvergenceConditionStrategyAbstract):
+    """Checks if variance of window is small enough."""
+
+    def __init__(self, x):
+        super(RunForXSlotsConvergenceStrategy, self).__init__(epsilon=x)
+
+    ##
+    # Gets stats, edge times and epsilon and returns a boolean.
+    # @stats is a list of 1 list. The first element is the window.
+    ##
+    def hasConverged(self, network, stats, startFrom, deadline):
+        return network.getTime() >= self.epsilon

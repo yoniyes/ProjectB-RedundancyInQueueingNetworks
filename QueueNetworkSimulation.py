@@ -234,7 +234,7 @@ class QueueNetworkSimulation:
 
             if self.verbose:
                 print "INFO:    Round ended at  :   " + str(datetime.datetime.now())
-                print "INFO:    Time slot       :   " + str(self.network.getTime()) + "\n"
+                print "INFO:    Time slot       :   " + str(self.network.getTime() + 1) + "\n"
             end = timer()   # Time in seconds
             simTimeAnalysis.append(float(end) - float(start))
             # plt.plot(runningAvg)
@@ -247,7 +247,9 @@ class QueueNetworkSimulation:
             print "INFO:        time                            :   " + str(end_time)
 
         # FIXME: Move the plotting to a plot strategy.
-        plt.plot(arrivalRates, self.statsCollector.getAvgWorkloadWindowStats().getWindow())
+        if self.verbose and len(arrivalRates) != len(self.statsCollector.getAvgWorkloadWindowStats().getWindow()):
+            print "WARN:    length of arrivalRates != length of stats collected"
+        plt.plot(arrivalRates, self.statsCollector.getAvgWorkloadWindowStats().getWindow()[:len(arrivalRates)])
         plt.show()
 
         plt.plot(simTimeAnalysis, 'rx')
@@ -323,8 +325,13 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=50, historyWindowSize=10000, T_min=100000)
 # cProfile.run('sim.run()')
 
-sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.75),
-                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
-                             verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=100000)
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.9),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
+#                              verbose=True, numOfRounds=5, historyWindowSize=10000, T_min=100000)
+# cProfile.run('sim.run()')
+
+sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.JoinShortestWorkloadStrategy(alpha=10, beta=1000, p=0.75),
+                             ConvergenceConditionStrategy.RunForXSlotsConvergenceStrategy(10000000),
+                             verbose=True, numOfRounds=100, historyWindowSize=10000, T_min=100000)
 cProfile.run('sim.run()')
 
