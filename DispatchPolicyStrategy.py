@@ -119,3 +119,94 @@ class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
             raise Exception("Invalid beta, should be greater than alpha")
         self.p = (beta - (1.0/self.mu)) / (beta - self.alpha)
         self.beta = beta
+
+
+class OnlyFirstQueueGetsJobsStrategy(DispatchPolicyStrategyAbstract):
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @mu being the total service rate and @p being the
+    # probability to choose alpha.
+    ##
+    def __init__(self, alpha, beta, p, n):
+        self.alpha = alpha
+        self.beta = beta
+        self.p = p
+        self.mu = 1.0 / (float(alpha)*float(p) + float(beta)*(1.0 - p))
+        self.n = n
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        workload = self.alpha
+        if np.random.binomial(1, self.p) == 0:
+            workload = self.beta
+        return [0], [workload]
+        # return [0], [np.random.choice([self.alpha, self.beta], p=[self.p, 1.0 - self.p])]
+
+    def getName(self):
+        return "only first queue gets jobs"
+
+    def getEffectiveServiceRate(self, network):
+        return self.mu * self.n
+
+
+class JoinShortestWorkloadStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that gives the job to the queue with the shortest workload."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha.
+    ##
+    def __init__(self, alpha, beta, p):
+        self.alpha = alpha
+        self.mu = 1.0 / (float(alpha)*p + float(beta)*(1.0 - p))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.beta = beta
+        self.p = p
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        workload = self.alpha
+        if np.random.binomial(1, self.p) == 0:
+            workload = self.beta
+        return [np.argmin(network.getWorkloads())], [workload]
+
+    def getName(self):
+        return "join shortest workload"
+
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize()
+
+
+class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that gives the job to all the queues."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha.
+    ##
+    def __init__(self, alpha, beta, p):
+        self.alpha = alpha
+        self.mu = 1.0 / (float(alpha)*p + float(beta)*(1.0 - p))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.beta = beta
+        self.p = p
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        workload = np.min(np.random.choice([self.alpha, self.beta], network.getSize(), p=[self.p, 1.0 - self.p]))
+        return range(network.getSize()), [workload for i in range(network.getSize())]
+
+    def getName(self):
+        return "route to all"
+
+    def getEffectiveServiceRate(self, network):
+        return 1.0 / (float(self.beta)*(1.0-self.p)**network.getSize() +
+                      float(self.alpha)*(1.0-(1.0-self.p)**network.getSize()))

@@ -192,8 +192,6 @@ class QueueNetworkSimulation:
             while self.network.getTime() < self.T_max:
                 t = self.network.getTime()
                 # Determine whether a new job arrived or not.
-                # newArrival = np.random.binomial(1, arrivalRate)
-                # newArrival = np.random.choice([True, False], p=[arrivalRate, 1.0 - arrivalRate])
                 if np.random.binomial(1, arrivalRate) == 1:
                     queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
                     self.network.addWorkload(queues, newWork)
@@ -310,8 +308,23 @@ import ConvergenceConditionStrategy
 #     sim.setDispatchPolicy(DispatchPolicyStrategy.FixedSubsetsStrategy(redundancy, 10, 1000, 0.75))
 #     sim.run()
 
-sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, mu=0.05, p=0.75),
+# sim = QueueNetworkSimulation(1, DispatchPolicyStrategy.OneQueueFixedServiceRateStrategy(alpha=10, mu=0.05, p=0.75),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
+#                              verbose=True, numOfRounds=100, historyWindowSize=10000, T_min=100000)
+# cProfile.run('sim.run()')
+
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.OnlyFirstQueueGetsJobsStrategy(n=2, alpha=10, beta=1000, p=0.75),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
+#                              verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=100000)
+# cProfile.run('sim.run()')
+
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.JoinShortestWorkloadStrategy(alpha=10, beta=1000, p=0.75),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
+#                              verbose=True, numOfRounds=50, historyWindowSize=10000, T_min=100000)
+# cProfile.run('sim.run()')
+
+sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.75),
                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.01),
-                             verbose=True, numOfRounds=100, historyWindowSize=10000, T_min=100000)
+                             verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=100000)
 cProfile.run('sim.run()')
 
