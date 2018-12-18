@@ -92,4 +92,4 @@ class RunForXSlotsConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     # @stats is a list of 1 list. The first element is the window.
     ##
     def hasConverged(self, network, stats, startFrom, deadline):
-        return network.getTime() >= self.epsilon
+        return network.getTime() >= self.epsilon - 1

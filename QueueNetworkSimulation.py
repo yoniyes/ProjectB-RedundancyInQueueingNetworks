@@ -325,13 +325,23 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=50, historyWindowSize=10000, T_min=100000)
 # cProfile.run('sim.run()')
 
-# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.9),
+# FIXME: REMEMBER - HISTORY WINDOW SIZE IS PREFERRED TO BE 10*(1-p)*T_min. THE REASON IS WE WANT A WINDOW TO PROPERLY REFLECT AN AVERAGE SERIES OF EVENTS IN THE SYSTEM.
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.8),
 #                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
-#                              verbose=True, numOfRounds=5, historyWindowSize=10000, T_min=100000)
+#                              verbose=True, numOfRounds=20, historyWindowSize=20000, T_min=100000, T_max=20000000)
 # cProfile.run('sim.run()')
 
-sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.JoinShortestWorkloadStrategy(alpha=10, beta=1000, p=0.75),
-                             ConvergenceConditionStrategy.RunForXSlotsConvergenceStrategy(10000000),
-                             verbose=True, numOfRounds=100, historyWindowSize=10000, T_min=100000)
-cProfile.run('sim.run()')
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.JoinShortestWorkloadStrategy(alpha=10, beta=1000, p=0.75),
+#                              ConvergenceConditionStrategy.RunForXSlotsConvergenceStrategy(1000000),
+#                              verbose=True, numOfRounds=20, historyWindowSize=100000, T_min=100000)
+# cProfile.run('sim.run()')
 
+# sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.VolunteerOrTeamworkStrategy(alpha=10, beta=1000, p=0.8, q=0.5),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
+#                              verbose=True, numOfRounds=20, historyWindowSize=20000, T_min=100000, T_max=20000000)
+# cProfile.run('sim.run()')
+
+sim = QueueNetworkSimulation(2, DispatchPolicyStrategy.RandomQueueStrategy(alpha=10, beta=1000, p=0.75),
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
+                             verbose=True, numOfRounds=20, historyWindowSize=50000, T_min=1000000, T_max=20000000)
+cProfile.run('sim.run()')

@@ -74,7 +74,32 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
         return "fixed subsets"
 
     def getEffectiveServiceRate(self, network):
-        """need to implement"""
+        muEffective = 1.0 / (float(self.alpha) * (1.0 - (1.0 - float(self.p))**self.redundancy) +
+                             float(self.beta) * (1.0 - self.p)**self.redundancy)
+        return muEffective * (float(network.getSize()) / float(self.redundancy))
+
+
+class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
+    """A random dispatching policy. A random queue will get the job."""
+
+    def __init__(self, alpha, beta, p):
+        self.alpha = alpha
+        self.beta = beta
+        self.p = p
+        self.mu = 1.0 / (float(alpha) * float(p) + float(beta) * (1.0 - p))
+
+    ##
+    # Randomly choose a queue and determine the workload it will get.
+    ##
+    def getDispatch(self, network):
+        return [np.random.choice(range(network.getSize()))], [np.random.choice([self.alpha, self.beta],
+                                                                             p=[self.p, 1.0 - self.p])]
+
+    def getName(self):
+        return "random queue"
+
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize()
 
 
 class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
@@ -210,3 +235,36 @@ class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
     def getEffectiveServiceRate(self, network):
         return 1.0 / (float(self.beta)*(1.0-self.p)**network.getSize() +
                       float(self.alpha)*(1.0-(1.0-self.p)**network.getSize()))
+
+
+class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that gives the job to all queues with probability @q or to 1 random queue with probability
+    1-@q."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha. @q is the probability to route to all.
+    ##
+    def __init__(self, alpha, beta, p, q):
+        self.routeToAll = RouteToAllStrategy(alpha, beta, p)
+        self.q = q
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        # FIXME: wrong assumption in route-to-all. Not all queues have the same workload!
+        if np.random.binomial(1, self.q) == 0:
+            return self.routeToAll.getDispatch(network)
+        return [np.random.choice(range(network.getSize()))], \
+               [np.random.choice([self.routeToAll.alpha, self.routeToAll.beta],
+                                 p=[self.routeToAll.p, 1.0 - self.routeToAll.p])]
+
+    def getName(self):
+        return "volunteer or teamwork"
+
+    ##
+    # Capacity region unknown so why not give it extra 20% :)?
+    ##
+    def getEffectiveServiceRate(self, network):
+        return 1.2 * self.routeToAll.mu * network.getSize()
