@@ -26,6 +26,13 @@ class ConvergenceConditionStrategyAbstract:
     def hasConverged(self, network, stats, startFrom, deadline):
         """Required Method"""
 
+    @abc.abstractmethod
+    def getName(self):
+        """Required Method"""
+
+    def getPrecision(self):
+        return self.epsilon
+
 
 ########################################################################################################################
 #   IMPLEMENTATIONS
@@ -42,6 +49,9 @@ class STDVConvergenceStrategy(ConvergenceConditionStrategyAbstract):
         stdv = np.std(stats)
         return (network.getTime() >= startFrom and float(avg) > 0.00001 and
                 (float(stdv) / float(avg)) < float(self.epsilon)) or network.getTime() > deadline
+
+    def getName(self):
+        return "standard deviation convergence"
 
 
 class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
@@ -65,6 +75,9 @@ class DeltaConvergenceStrategy(ConvergenceConditionStrategyAbstract):
                                                 math.fabs((float(avgCurr) - float(avgPrev)) / float(avgPrev)) <
                                                 float(self.epsilon))
 
+    def getName(self):
+        return "window delta convergence"
+
 
 class VarianceConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     """Checks if variance of window is small enough."""
@@ -80,6 +93,9 @@ class VarianceConvergenceStrategy(ConvergenceConditionStrategyAbstract):
         runningAvg = stats[0]
         return network.getTime() > deadline or (network.getTime() >= startFrom and np.var(runningAvg) < self.epsilon)
 
+    def getName(self):
+        return "average workload variance convergence"
+
 
 class RunForXSlotsConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     """Checks if variance of window is small enough."""
@@ -93,3 +109,6 @@ class RunForXSlotsConvergenceStrategy(ConvergenceConditionStrategyAbstract):
     ##
     def hasConverged(self, network, stats, startFrom, deadline):
         return network.getTime() >= self.epsilon - 1
+
+    def getName(self):
+        return "run for x slots"

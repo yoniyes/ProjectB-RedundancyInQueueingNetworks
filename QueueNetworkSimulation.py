@@ -165,6 +165,7 @@ class QueueNetworkSimulation:
     ##
     def run(self):
         start_time = datetime.datetime.now()
+        initialWorkloadStr = str(self.network.getWorkloads())
         if self.verbose:
             print "INFO:    Starting simulation:"
             print "INFO:        time                            :   " + str(start_time)
@@ -246,6 +247,27 @@ class QueueNetworkSimulation:
             print "INFO:    Simulation ended at:"
             print "INFO:        time                            :   " + str(end_time)
 
+        # Save results to file.
+        if self.verbose:
+            print "INFO:    Saving results to file [ " + str(datetime.datetime.now()) + "_queue_net_sim.dump ]"
+        fd = open(str(datetime.datetime.now()) + "_queue_net_sim.dump", "w+")
+        for val in arrivalRates:
+            fd.write(str(val) + ",")
+        fd.write("\n")
+        for val in self.statsCollector.getAvgWorkloadWindowStats().getWindow():
+            fd.write(str(val) + ",")
+        fd.write("\n")
+        fd.write("\n")
+        fd.write("INFO:        time started                    :   " + str(start_time))
+        fd.write("INFO:        time ended                      :   " + str(end_time))
+        fd.write("INFO:        number of servers               :   " + str(self.network.getSize()))
+        fd.write("INFO:        dispatch policy                 :   " + self.dispatchPolicyStrategy.getName())
+        fd.write("INFO:        convergence condition           :   " + self.convergenceConditionStrategy.getName())
+        fd.write("INFO:        convergence precision           :   " + self.convergenceConditionStrategy.getPrecision())
+        fd.write("INFO:        servers service per time slot   :   " + str(self.network.getServices()))
+        fd.write("INFO:        servers initial workload        :   " + initialWorkloadStr + "\n")
+        fd.close()
+
         # FIXME: Move the plotting to a plot strategy.
         if self.verbose and len(arrivalRates) != len(self.statsCollector.getAvgWorkloadWindowStats().getWindow()):
             print "WARN:    length of arrivalRates != length of stats collected"
@@ -269,18 +291,34 @@ class QueueNetworkSimulation:
     ##
     def save(self, filename="queue_net_sim.dump"):
         if self.verbose:
-            print "INFO:    Saving simulation to file [ " + filename + " ]"
+            print "INFO:    Saving simulation to file [ " + str(datetime.datetime.now()) + "_" + filename + " ]"
 
     ##
     # Plot results based on given plotting scheme.
     ##
-    def plot(self, plotStrategy=None):
+    def plot(self, x, y, plotStrategy=None):
         if self.verbose:
             print "INFO:    Plotting..."
-        if self.plotStrategy is not None:
-            self.plotStrategy.plot(self.statsCollector)
         if plotStrategy is not None:
-            plotStrategy.plot(self.statsCollector)
+            plotStrategy.plot(x, y)
+        elif self.plotStrategy is not None:
+            self.plotStrategy.plot(x, y)
+
+    ##
+    # Plot results from file based on given plotting scheme.
+    ##
+    def plotFromFile(self, resultsFile, plotStrategy=None):
+        if self.verbose:
+            print "INFO:    Getting data from [ " + resultsFile + " ]"
+        with open(resultsFile, "r") as fd:
+            x = [float(val) for val in fd.readline().split(',')[:-1]]
+            y = [float(val) for val in fd.readline().split(',')[:-1]]
+            if self.verbose:
+                print "INFO:    Results metadata:"
+                print "################################################################"
+                print fd.read()
+                print "################################################################"
+        self.plot(x, y, plotStrategy=plotStrategy)
 
 
 ########################################################################################################################
@@ -346,7 +384,7 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=20, historyWindowSize=20000, T_min=1000000, T_max=20000000)
 # cProfile.run('sim.run()')
 
-sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.RouteToAllStrategy(alpha=10, beta=1000, p=0.9),
-                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.05),
-                             verbose=True, numOfRounds=50, historyWindowSize=100000, T_min=1000000, T_max=12000000)
+sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.RouteToAllStrategy(alpha=1, beta=1000, p=0.9),
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0005),
+                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=1000000, T_max=100000000)
 cProfile.run('sim.run()')
