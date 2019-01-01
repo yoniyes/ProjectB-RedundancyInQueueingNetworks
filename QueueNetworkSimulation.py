@@ -3,13 +3,16 @@ from StatsCollector import *
 import matplotlib.pyplot as plt
 import datetime
 from timeit import default_timer as timer
+import math
 
 import cProfile
 
 
-# TODO: 1 server, mu = 0.5, sweep lambda up to lambda = 0.99*mu and for every lambda plot running average.
-#       Plot for all sims the converged average workload.
-# TODO: Check resolution of python's random capability using big numbers rule.
+def guessAvgWorkload(arrivalRate, oneQmu, systemMuEffective):
+    if arrivalRate >= systemMuEffective:
+        return 0.0
+    return arrivalRate * math.exp(arrivalRate) / (oneQmu*(systemMuEffective - arrivalRate))
+
 ########################################################################################################################
 #   STATS CLASS
 ########################################################################################################################
@@ -103,7 +106,7 @@ class QueueNetworkSimulation:
     ##
     def __init__(self, size, dispatchPolicyStrategy, convergenceConditionStrategy, plotStrategy=None, services=[],
                  workloads=[], historyWindowSize=10000, numOfRounds=1000,
-                 verbose=False, T_min=0, T_max=10000000):
+                 verbose=False, T_min=0, T_max=10000000, guess=False):
         _T_min = T_min
         if T_min == 0:
             _T_min = historyWindowSize
@@ -118,6 +121,7 @@ class QueueNetworkSimulation:
         self.T_max = T_max
         self.T_min = _T_min
         self.numOfRounds = numOfRounds
+        self.guessAvgWorkload = guess
 
     ##
     # Resets the simulation.
@@ -188,6 +192,16 @@ class QueueNetworkSimulation:
                                                                                       effectiveServiceRate) + "% ]"
                 print "INFO:    Round Started at  :   " + str(datetime.datetime.now())
             start = timer()
+            # Try and guess avg workload for faster convergence.
+            # TODO: test this feature and this guess function.
+            if self.guessAvgWorkload:
+                guess = int(guessAvgWorkload(arrivalRate, self.dispatchPolicyStrategy.getOneQueueMu(),
+                                             effectiveServiceRate))
+                initWorkloads = [int(guess / self.network.getSize()) for i in range(self.network.getSize())]
+                self.network.setWorkloads(initWorkloads)
+                if self.verbose:
+                    print "INFO:    Guessed avg workload  =   " + str(guess)
+
             # runningAvg = [0]
             # Time-slot operating loop.
             while self.network.getTime() < self.T_max:
@@ -249,8 +263,8 @@ class QueueNetworkSimulation:
 
         # Save results to file.
         if self.verbose:
-            print "INFO:    Saving results to file [ " + str(datetime.datetime.now()) + "_queue_net_sim.dump ]"
-        fd = open(str(datetime.datetime.now()) + "_queue_net_sim.dump", "w+")
+            print "INFO:    Saving results to file [ " + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "_queue_net_sim.dump ]"
+        fd = open(datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '_queue_net_sim.dump', 'w')
         for val in arrivalRates:
             fd.write(str(val) + ",")
         fd.write("\n")
@@ -258,13 +272,13 @@ class QueueNetworkSimulation:
             fd.write(str(val) + ",")
         fd.write("\n")
         fd.write("\n")
-        fd.write("INFO:        time started                    :   " + str(start_time))
-        fd.write("INFO:        time ended                      :   " + str(end_time))
-        fd.write("INFO:        number of servers               :   " + str(self.network.getSize()))
-        fd.write("INFO:        dispatch policy                 :   " + self.dispatchPolicyStrategy.getName())
-        fd.write("INFO:        convergence condition           :   " + self.convergenceConditionStrategy.getName())
-        fd.write("INFO:        convergence precision           :   " + self.convergenceConditionStrategy.getPrecision())
-        fd.write("INFO:        servers service per time slot   :   " + str(self.network.getServices()))
+        fd.write("INFO:        time started                    :   " + str(start_time) + "\n")
+        fd.write("INFO:        time ended                      :   " + str(end_time) + "\n")
+        fd.write("INFO:        number of servers               :   " + str(self.network.getSize()) + "\n")
+        fd.write("INFO:        dispatch policy                 :   " + self.dispatchPolicyStrategy.getName() + "\n")
+        fd.write("INFO:        convergence condition           :   " + self.convergenceConditionStrategy.getName() + "\n")
+        fd.write("INFO:        convergence precision           :   " + str(self.convergenceConditionStrategy.getPrecision()) + "\n")
+        fd.write("INFO:        servers service per time slot   :   " + str(self.network.getServices()) + "\n")
         fd.write("INFO:        servers initial workload        :   " + initialWorkloadStr + "\n")
         fd.close()
 
@@ -386,5 +400,5 @@ import ConvergenceConditionStrategy
 
 sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.RouteToAllStrategy(alpha=1, beta=1000, p=0.9),
                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0005),
-                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=1000000, T_max=100000000)
+                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=1000000, T_max=150000000)
 cProfile.run('sim.run()')

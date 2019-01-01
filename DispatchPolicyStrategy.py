@@ -34,6 +34,13 @@ class DispatchPolicyStrategyAbstract:
     def getName(self):
         """Required Method"""
 
+    ##
+    # Get name of policy.
+    ##
+    @abc.abstractmethod
+    def getOneQueueMu(self):
+        """Required Method"""
+
 
 ########################################################################################################################
 #   IMPLEMENTATIONS
@@ -78,6 +85,9 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
                              float(self.beta) * (1.0 - self.p)**self.redundancy)
         return muEffective * (float(network.getSize()) / float(self.redundancy))
 
+    def getOneQueueMu(self):
+        return 1.0 / (self.alpha*self.p + self.beta*(1.0 - self.p))
+
 
 class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
     """A random dispatching policy. A random queue will get the job."""
@@ -100,6 +110,9 @@ class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
 
     def getEffectiveServiceRate(self, network):
         return self.mu * network.getSize()
+
+    def getOneQueueMu(self):
+        return self.mu
 
 
 class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
@@ -145,6 +158,9 @@ class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
         self.p = (beta - (1.0/self.mu)) / (beta - self.alpha)
         self.beta = beta
 
+    def getOneQueueMu(self):
+        return self.mu
+
 
 class OnlyFirstQueueGetsJobsStrategy(DispatchPolicyStrategyAbstract):
 
@@ -174,6 +190,9 @@ class OnlyFirstQueueGetsJobsStrategy(DispatchPolicyStrategyAbstract):
 
     def getEffectiveServiceRate(self, network):
         return self.mu * self.n
+
+    def getOneQueueMu(self):
+        return self.mu
 
 
 class JoinShortestWorkloadStrategy(DispatchPolicyStrategyAbstract):
@@ -206,6 +225,9 @@ class JoinShortestWorkloadStrategy(DispatchPolicyStrategyAbstract):
     def getEffectiveServiceRate(self, network):
         return self.mu * network.getSize()
 
+    def getOneQueueMu(self):
+        return self.mu
+
 
 class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
     """A dispatching policy that gives the job to all the queues."""
@@ -235,6 +257,9 @@ class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
     def getEffectiveServiceRate(self, network):
         return 1.0 / (float(self.beta)*(1.0-self.p)**network.getSize() +
                       float(self.alpha)*(1.0-(1.0-self.p)**network.getSize()))
+
+    def getOneQueueMu(self):
+        return self.mu
 
 
 class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
@@ -268,3 +293,6 @@ class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
     ##
     def getEffectiveServiceRate(self, network):
         return 1.2 * self.routeToAll.mu * network.getSize()
+
+    def getOneQueueMu(self):
+        return self.routeToAll.getOneQueueMu()
