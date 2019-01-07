@@ -296,3 +296,97 @@ class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.routeToAll.getOneQueueMu()
+
+
+class RandomDStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that chooses d queues at random and dispatches the job to them."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha. @d is the redundancy level.
+    ##
+    def __init__(self, alpha, beta, p, d):
+        self.alpha = int(alpha)
+        self.mu = 1.0 / (float(alpha) * p + float(beta) * (1.0 - p))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.beta = int(beta)
+        self.p = float(p)
+        self.d = int(d)
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        # get network state.
+        currWlds = network.getWorkloads()
+        n = network.getSize()
+        # choose queues to receive the job.
+        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n for i in range(n)])
+        # randomize incoming workload for each queue.
+        incomingWlds = np.random.choice([self.alpha, self.beta], self.d, p=[self.p, 1.0 - self.p])
+        speculation = [currWlds[chosenQueues[i]] + incomingWlds[i] for i in range(self.d)]
+        min_i = int(np.argmin(speculation))
+        added = [np.max([speculation[min_i] - currWlds[chosenQueues[i]], 0]) for i in range(self.d)]
+        return chosenQueues, added
+
+    def getName(self):
+        return "random-d out of n"
+
+    ##
+    # Capacity region unknown. Returns cap. region of d=1.
+    ##
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize()
+
+    def getOneQueueMu(self):
+        return self.mu
+
+
+class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that chooses d queues at random and dispatches the job to them. Job size is determined as
+    a + geometric(p)"""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha. @d is the redundancy level.
+    ##
+    def __init__(self, alpha, p, d, n):
+        if p >= 1.0 / 2.0*int(n):
+            raise Exception("Error: must be [ (1.0 / 2*n) > p ] in order to dispatch correctly.")
+        self.p = float(p)
+        self.n = int(n)
+        self.alpha = int(alpha)
+        self.delta = np.random.RandomState()
+        self.mu = 1.0 / (int(alpha) + (1.0 / float(p)))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.d = int(d)
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        # get network state.
+        currWlds = network.getWorkloads()
+        n = network.getSize()
+        # choose queues to receive the job.
+        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n for i in range(n)])
+        # randomize incoming workload for each queue.
+        incomingWlds = [self.alpha + self.delta.geometric(p=self.p) for i in range(self.d)]
+        speculation = [currWlds[chosenQueues[i]] + incomingWlds[i] for i in range(self.d)]
+        min_i = int(np.argmin(speculation))
+        added = [np.max([speculation[min_i] - currWlds[chosenQueues[i]], 0]) for i in range(self.d)]
+        return chosenQueues, added
+
+    def getName(self):
+        return "geometric delta random-d"
+
+    ##
+    # Capacity region unknown. Returns cap. region of d=1.
+    ##
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize()
+
+    def getOneQueueMu(self):
+        return self.mu

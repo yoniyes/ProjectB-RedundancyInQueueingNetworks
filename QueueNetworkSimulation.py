@@ -398,7 +398,12 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=20, historyWindowSize=20000, T_min=1000000, T_max=20000000)
 # cProfile.run('sim.run()')
 
-sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.RouteToAllStrategy(alpha=1, beta=1000, p=0.9),
-                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0005),
-                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=1000000, T_max=150000000)
+# sim = QueueNetworkSimulation(4, DispatchPolicyStrategy.RouteToAllStrategy(alpha=1, beta=1000, p=0.9),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
+#                              verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=1000000, T_max=150000000)
+# cProfile.run('sim.run()')
+
+sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=1, beta=1000, p=0.9, d=2),
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
+                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=500000, T_max=150000000)
 cProfile.run('sim.run()')
