@@ -322,7 +322,7 @@ class RandomDStrategy(DispatchPolicyStrategyAbstract):
         currWlds = network.getWorkloads()
         n = network.getSize()
         # choose queues to receive the job.
-        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n for i in range(n)])
+        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n]*n)
         # randomize incoming workload for each queue.
         incomingWlds = np.random.choice([self.alpha, self.beta], self.d, p=[self.p, 1.0 - self.p])
         speculation = [currWlds[chosenQueues[i]] + incomingWlds[i] for i in range(self.d)]
@@ -348,8 +348,9 @@ class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
     a + geometric(p)"""
 
     ##
-    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
-    # the probability to choose @alpha. @d is the redundancy level.
+    # Initialize policy with @alpha being constant workload for a job, @p being a geometric distribution parameter from
+    # which a job's random workload part will be drawn, @n being the number of servers in the system. @d is the
+    # redundancy level.
     ##
     def __init__(self, alpha, p, d, n):
         if p >= 1.0 / 2.0*int(n):
@@ -371,9 +372,9 @@ class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
         currWlds = network.getWorkloads()
         n = network.getSize()
         # choose queues to receive the job.
-        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n for i in range(n)])
+        chosenQueues = np.random.choice(range(n), self.d, replace=False, p=[1.0/n]*n)
         # randomize incoming workload for each queue.
-        incomingWlds = [self.alpha + self.delta.geometric(p=self.p) for i in range(self.d)]
+        incomingWlds = self.alpha + self.delta.geometric(p=self.p, size=self.d)
         speculation = [currWlds[chosenQueues[i]] + incomingWlds[i] for i in range(self.d)]
         min_i = int(np.argmin(speculation))
         added = [np.max([speculation[min_i] - currWlds[chosenQueues[i]], 0]) for i in range(self.d)]
