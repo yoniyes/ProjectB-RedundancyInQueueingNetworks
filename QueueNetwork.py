@@ -1,4 +1,4 @@
-from Queue import Queue
+from MyQueue import Queue
 import numpy as np
 import unittest as ut
 

@@ -105,7 +105,7 @@ class QueueNetworkSimulation:
     # NOTICE: Edit this to set a different statistics class for init.
     ##
     def __init__(self, size, dispatchPolicyStrategy, convergenceConditionStrategy, plotStrategy=None, services=[],
-                 workloads=[], historyWindowSize=10000, numOfRounds=1000,
+                 workloads=[], historyWindowSize=10000, numOfRounds=100,
                  verbose=False, T_min=0, T_max=10000000, guess=False):
         _T_min = T_min
         if T_min == 0:
@@ -162,6 +162,89 @@ class QueueNetworkSimulation:
         AvgWorkLoad_prev = float(AvgWorkLoad_prev)
         TotalWorkLoad = float(TotalWorkLoad)
         return (1.0 / T) * ((T - 1) * AvgWorkLoad_prev + TotalWorkLoad)
+
+    def getEffectiveServiceRate(self):
+        return self.dispatchPolicyStrategy.getEffectiveServiceRate(self.network)
+
+    def singleRun(self, arrivalRate, effectiveServiceRate, resultQueue=None, resultNum=None):
+        if self.verbose:
+            print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + str(100.0 * arrivalRate /
+                                                                                  effectiveServiceRate) + "% ]"
+            print "INFO:    Round Started at  :   " + str(datetime.datetime.now()) + "\n"
+        if arrivalRate <= 0:
+            if self.verbose:
+                print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + str(100.0 * arrivalRate /
+                                                                                      effectiveServiceRate) + "% ]"
+                print "INFO:    Round ended at    :   " + str(datetime.datetime.now())
+                print "INFO:    Time slot         :   " + str(self.network.getTime()) + "\n"
+            if resultQueue is not None:
+                resultQueue.put([resultNum, 0.0])
+                return
+            else:
+                return 0.0
+        start = timer()
+        # runningAvg = [0]
+        # Time-slot operating loop.
+        while self.network.getTime() < self.T_max:
+            t = self.network.getTime()
+            # Determine whether a new job arrived or not.
+            if np.random.binomial(1, arrivalRate) == 1:
+                queues, newWork = self.dispatchPolicyStrategy.getDispatch(self.network)
+                self.network.addWorkload(queues, newWork)
+            # End the time-slot.
+            self.network.endTimeSlot()
+            # Check for convergence.
+            if t >= self.T_min and (t + 1) % self.statsCollector.getWindowStats().getWindowSize() == 0:
+                # If converged, record stats and end round.
+                if self.convergenceConditionStrategy.hasConverged(self.network,
+                                                                  [self.statsCollector.getWindowStats().getWindow()],
+                                                                  self.T_min, self.T_max):
+                    self.statsCollector.insertToWindow(
+                        self.calcAvgWorkLoad(
+                            t + 1,
+                            self.statsCollector.getLastWindowEntry(),
+                            self.network.getTotalWorkload()
+                        )
+                    )
+                    if self.verbose:
+                        print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + \
+                              str(100.0 * arrivalRate / effectiveServiceRate) + "% ]"
+                        print "INFO:    Round ended at    :   " + str(datetime.datetime.now())
+                        print "INFO:    Time slot         :   " + str(self.network.getTime() + 1) + "\n"
+                    if resultQueue is not None:
+                        resultQueue.put([resultNum, np.mean(self.statsCollector.getWindowStats().getWindow())])
+                        return
+                    else:
+                        return np.mean(self.statsCollector.getWindowStats().getWindow())
+
+            # Gather stats of this time-slot.
+            self.statsCollector.insertToWindow(
+                self.calcAvgWorkLoad(
+                    t+1,
+                    self.statsCollector.getLastWindowEntry(),
+                    self.network.getTotalWorkload()
+                )
+            )
+            # runningAvg.append(self.calcAvgWorkLoad(t+1, runningAvg[t], self.network.getTotalWorkload()))
+            # Advance simulation time.
+            self.network.advanceTimeSlot()
+
+        if self.verbose:
+            print "INFO:    arrival rate  =   " + str(arrivalRate) + "  [ " + \
+                  str(100.0 * arrivalRate / effectiveServiceRate) + "% ]"
+            print "INFO:    Round ended at  :   " + str(datetime.datetime.now())
+            print "INFO:    Time slot       :   " + str(self.network.getTime() + 1)
+        end = timer()   # Time in seconds
+        print "INFO:    Time in seconds :   " + str(float(end) - float(start)) + "\n"
+        # if (arrivalRate / effectiveServiceRate == 0.2) or (arrivalRate / effectiveServiceRate == 0.75) or \
+        #     (arrivalRate / effectiveServiceRate == 0.9) or (arrivalRate / effectiveServiceRate == 0.95):
+        #     plt.plot(runningAvg)
+        #     plt.show()
+        if resultQueue is not None:
+            resultQueue.put([resultNum, np.mean(self.statsCollector.getWindowStats().getWindow())])
+            return
+        else:
+            return np.mean(self.statsCollector.getWindowStats().getWindow())
 
     ##
     # Run the simulation.
@@ -252,8 +335,10 @@ class QueueNetworkSimulation:
                 print "INFO:    Time slot       :   " + str(self.network.getTime() + 1) + "\n"
             end = timer()   # Time in seconds
             simTimeAnalysis.append(float(end) - float(start))
-            # plt.plot(runningAvg)
-            # plt.show()
+            # if (arrivalRate / effectiveServiceRate == 0.2) or (arrivalRate / effectiveServiceRate == 0.75) or \
+            #     (arrivalRate / effectiveServiceRate == 0.9) or (arrivalRate / effectiveServiceRate == 0.95):
+            #     plt.plot(runningAvg)
+            #     plt.show()
             self.network.reset()
 
         end_time = datetime.datetime.now()
@@ -403,7 +488,20 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=1000000, T_max=150000000)
 # cProfile.run('sim.run()')
 
-sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=1, beta=1000, p=0.9, d=2),
-                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
-                             verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=500000, T_max=150000000)
-cProfile.run('sim.run()')
+# sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=1000, p=0.8, d=2),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
+#                              verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=500000, T_max=150000000)
+# # cProfile.run('sim.run()')
+#
+#
+# class PLOT:
+#     def __init__(self, properties=None):
+#         self.properties = properties
+#
+#     def plot(self, x, y):
+#         plt.plot(x, y)
+#         plt.show()
+#
+#
+# plotter = PLOT()
+# sim.plotFromFile(resultsFile="20190110-054529_queue_net_sim.dump", plotStrategy=plotter)
