@@ -361,6 +361,7 @@ class QueueNetworkSimulation:
         fd.write("INFO:        time ended                      :   " + str(end_time) + "\n")
         fd.write("INFO:        number of servers               :   " + str(self.network.getSize()) + "\n")
         fd.write("INFO:        dispatch policy                 :   " + self.dispatchPolicyStrategy.getName() + "\n")
+        fd.write("INFO:        redundancy                      :   " + str(self.dispatchPolicyStrategy.getRedundancy()) + "\n")
         fd.write("INFO:        convergence condition           :   " + self.convergenceConditionStrategy.getName() + "\n")
         fd.write("INFO:        convergence precision           :   " + str(self.convergenceConditionStrategy.getPrecision()) + "\n")
         fd.write("INFO:        servers service per time slot   :   " + str(self.network.getServices()) + "\n")
@@ -395,7 +396,9 @@ class QueueNetworkSimulation:
     ##
     # Plot results based on given plotting scheme.
     ##
-    def plot(self, x, y, plotStrategy=None):
+    def plot(self, x=None, y=None, plotStrategy=None):
+        if x is None or y is None:
+            return
         if self.verbose:
             print "INFO:    Plotting..."
         if plotStrategy is not None:
@@ -492,16 +495,16 @@ import ConvergenceConditionStrategy
 #                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
 #                              verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=500000, T_max=150000000)
 # # cProfile.run('sim.run()')
-#
-#
-# class PLOT:
-#     def __init__(self, properties=None):
-#         self.properties = properties
-#
-#     def plot(self, x, y):
-#         plt.plot(x, y)
-#         plt.show()
-#
+
+
+class PLOT:
+    def __init__(self, properties=None):
+        self.properties = properties
+
+    def plot(self, x, y):
+        plt.plot(x, y)
+        plt.show()
+
 #
 # plotter = PLOT()
 # sim.plotFromFile(resultsFile="20190110-054529_queue_net_sim.dump", plotStrategy=plotter)

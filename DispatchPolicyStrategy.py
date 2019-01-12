@@ -41,6 +41,12 @@ class DispatchPolicyStrategyAbstract:
     def getOneQueueMu(self):
         """Required Method"""
 
+    ##
+    # Get level of redundancy for the policy.
+    ##
+    def getRedundancy(self):
+        return 1
+
 
 ########################################################################################################################
 #   IMPLEMENTATIONS
@@ -87,6 +93,9 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return 1.0 / (self.alpha*self.p + self.beta*(1.0 - self.p))
+
+    def getRedundancy(self):
+        return self.redundancy
 
 
 class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
@@ -243,11 +252,13 @@ class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
             raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
         self.beta = beta
         self.p = p
+        self.n = -1
 
     ##
     # Randomize arriving job's workload.
     ##
     def getDispatch(self, network):
+        self.n = network.getSize()
         workload = np.min(np.random.choice([self.alpha, self.beta], network.getSize(), p=[self.p, 1.0 - self.p]))
         return range(network.getSize()), [workload for i in range(network.getSize())]
 
@@ -255,11 +266,15 @@ class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
         return "route to all"
 
     def getEffectiveServiceRate(self, network):
+        self.n = network.getSize()
         return 1.0 / (float(self.beta)*(1.0-self.p)**network.getSize() +
                       float(self.alpha)*(1.0-(1.0-self.p)**network.getSize()))
 
     def getOneQueueMu(self):
         return self.mu
+
+    def getRedundancy(self):
+        return self.n
 
 
 class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
@@ -296,6 +311,9 @@ class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.routeToAll.getOneQueueMu()
+
+    def getRedundancy(self):
+        return [1, self.routeToAll.getRedundancy()]
 
 
 class RandomDStrategy(DispatchPolicyStrategyAbstract):
@@ -341,6 +359,9 @@ class RandomDStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.mu
+
+    def getRedundancy(self):
+        return self.d
 
 
 class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
@@ -391,3 +412,6 @@ class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.mu
+
+    def getRedundancy(self):
+        return self.d
