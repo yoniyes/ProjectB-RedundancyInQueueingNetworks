@@ -47,6 +47,12 @@ class DispatchPolicyStrategyAbstract:
     def getRedundancy(self):
         return 1
 
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return ""
+
 
 ########################################################################################################################
 #   IMPLEMENTATIONS
@@ -97,6 +103,13 @@ class FixedSubsetsStrategy(DispatchPolicyStrategyAbstract):
     def getRedundancy(self):
         return self.redundancy
 
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta) + \
+               ", d = " + str(self.redundancy)
+
 
 class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
     """A random dispatching policy. A random queue will get the job."""
@@ -122,6 +135,12 @@ class RandomQueueStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.mu
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta)
 
 
 class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
@@ -170,6 +189,13 @@ class OneQueueFixedServiceRateStrategy(DispatchPolicyStrategyAbstract):
     def getOneQueueMu(self):
         return self.mu
 
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta) + \
+               ", mu = " + str(self.mu)
+
 
 class OnlyFirstQueueGetsJobsStrategy(DispatchPolicyStrategyAbstract):
 
@@ -202,6 +228,13 @@ class OnlyFirstQueueGetsJobsStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.mu
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta) + \
+               ", n = " + str(self.n)
 
 
 class JoinShortestWorkloadStrategy(DispatchPolicyStrategyAbstract):
@@ -236,6 +269,12 @@ class JoinShortestWorkloadStrategy(DispatchPolicyStrategyAbstract):
 
     def getOneQueueMu(self):
         return self.mu
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta)
 
 
 class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
@@ -276,6 +315,12 @@ class RouteToAllStrategy(DispatchPolicyStrategyAbstract):
     def getRedundancy(self):
         return self.n
 
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta)
+
 
 class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
     """A dispatching policy that gives the job to all queues with probability @q or to 1 random queue with probability
@@ -315,6 +360,13 @@ class VolunteerOrTeamworkStrategy(DispatchPolicyStrategyAbstract):
     def getRedundancy(self):
         return [1, self.routeToAll.getRedundancy()]
 
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.routeToAll.p) + ", alpha = " + str(self.routeToAll.alpha) + \
+               ", beta = " + str(self.routeToAll.beta) + ", q = " + str(self.q)
+
 
 class RandomDStrategy(DispatchPolicyStrategyAbstract):
     """A dispatching policy that chooses d queues at random and dispatches the job to them."""
@@ -323,7 +375,7 @@ class RandomDStrategy(DispatchPolicyStrategyAbstract):
     # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
     # the probability to choose @alpha. @d is the redundancy level.
     ##
-    def __init__(self, alpha, beta, p, d):
+    def __init__(self, alpha, beta, p, d, bias=0.0):
         self.alpha = int(alpha)
         self.mu = 1.0 / (float(alpha) * p + float(beta) * (1.0 - p))
         if 1.0 / self.mu <= float(alpha):
@@ -331,6 +383,7 @@ class RandomDStrategy(DispatchPolicyStrategyAbstract):
         self.beta = int(beta)
         self.p = float(p)
         self.d = int(d)
+        self.bias = bias
 
     ##
     # Randomize arriving job's workload.
@@ -352,16 +405,23 @@ class RandomDStrategy(DispatchPolicyStrategyAbstract):
         return "random-d out of n"
 
     ##
-    # Capacity region unknown. Returns cap. region of d=1.
+    # Capacity region unknown. Returns cap. region of d=1 with a factor of the bias.
     ##
     def getEffectiveServiceRate(self, network):
-        return self.mu * network.getSize()
+        return self.mu * network.getSize() * (1.0 + self.bias)
 
     def getOneQueueMu(self):
         return self.mu
 
     def getRedundancy(self):
         return self.d
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta) + \
+               ", d = " + str(self.d)
 
 
 class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
@@ -415,3 +475,65 @@ class GeometricDeltaRandomDStrategy(DispatchPolicyStrategyAbstract):
 
     def getRedundancy(self):
         return self.d
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", d = " + str(self.d)
+
+
+class RouteToIdleQueuesStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that chooses all idle queues and dispatches the job to them. If none are idle, a queue is
+    chosen at random."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha.
+    ##
+    def __init__(self, alpha, beta, p, bias=0.0):
+        self.alpha = int(alpha)
+        self.mu = 1.0 / (float(alpha) * p + float(beta) * (1.0 - p))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.beta = int(beta)
+        self.p = float(p)
+        self.bias = bias
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        # get network state.
+        currWlds = network.getWorkloads()
+        n = network.getSize()
+        # choose queues to receive the job.
+        chosenQueues = []
+        for i in np.argsort(currWlds):
+            if currWlds[i] > 0:
+                break
+            chosenQueues.append(i)
+        if not chosenQueues:
+            chosenQueues = [np.random.choice(range(n))]
+        # randomize incoming workload for each queue.
+        added = [np.min(np.random.choice([self.alpha, self.beta], len(chosenQueues), p=[self.p, 1.0 - self.p]))] * \
+                len(chosenQueues)
+        return chosenQueues, added
+
+    def getName(self):
+        return "route to idle queues"
+
+    ##
+    # Capacity region unknown. Returns cap. region of d=1 with a factor of the bias.
+    ##
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize() * (1.0 + self.bias)
+
+    def getOneQueueMu(self):
+        return self.mu
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta)

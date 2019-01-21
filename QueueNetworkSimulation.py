@@ -122,6 +122,7 @@ class QueueNetworkSimulation:
         self.T_min = _T_min
         self.numOfRounds = numOfRounds
         self.guessAvgWorkload = guess
+        self.box = 0.0
 
     ##
     # Resets the simulation.
@@ -181,6 +182,7 @@ class QueueNetworkSimulation:
                 resultQueue.put([resultNum, 0.0])
                 return
             else:
+                self.box = 0.0
                 return 0.0
         start = timer()
         # runningAvg = [0]
@@ -215,6 +217,7 @@ class QueueNetworkSimulation:
                         resultQueue.put([resultNum, np.mean(self.statsCollector.getWindowStats().getWindow())])
                         return
                     else:
+                        self.box = np.mean(self.statsCollector.getWindowStats().getWindow())
                         return np.mean(self.statsCollector.getWindowStats().getWindow())
 
             # Gather stats of this time-slot.
@@ -235,13 +238,14 @@ class QueueNetworkSimulation:
             print "INFO:    Round ended at  :   " + str(datetime.datetime.now())
             print "INFO:    Time slot       :   " + str(self.network.getTime() + 1)
         end = timer()   # Time in seconds
-        print "INFO:    Time in seconds :   " + str(float(end) - float(start)) + "\n"
         # if (arrivalRate / effectiveServiceRate == 0.2) or (arrivalRate / effectiveServiceRate == 0.75) or \
         #     (arrivalRate / effectiveServiceRate == 0.9) or (arrivalRate / effectiveServiceRate == 0.95):
         #     plt.plot(runningAvg)
         #     plt.show()
         if resultQueue is not None:
+            print "INFO:    Time in seconds :   " + str(float(end) - float(start))
             resultQueue.put([resultNum, np.mean(self.statsCollector.getWindowStats().getWindow())])
+            print "XXX\n"
             return
         else:
             return np.mean(self.statsCollector.getWindowStats().getWindow())
