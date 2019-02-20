@@ -153,13 +153,18 @@ if __name__ == '__main__':
     #sim = parSim(3, qns.DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=2000, p=0.8, d=2, bias=0.225*2),
     #             qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0001), verbose=True,
     #             numOfRounds=rounds, historyWindowSize=20000, T_min=500000, T_max=1000000000, plotStrategy=qns.PLOT())
-    sim1 = parSim(3, qns.DispatchPolicyStrategy.RandomQueueStrategy(alpha=10, beta=2000, p=0.8),
-                 qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0001), verbose=True,
-                 numOfRounds=rounds, historyWindowSize=20000, T_min=500000, T_max=1000000000, plotStrategy=qns.PLOT())
-    sim1.parRun()
-    sim = parSim(3, qns.DispatchPolicyStrategy.RouteToIdleQueuesStrategy(alpha=10, beta=2000, p=0.8),
-                 qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0001), verbose=True,
+    # sim1 = parSim(3, qns.DispatchPolicyStrategy.RandomQueueStrategy(alpha=10, beta=2000, p=0.8),
+    #              qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0001), verbose=True,
+    #              numOfRounds=rounds, historyWindowSize=20000, T_min=500000, T_max=1000000000, plotStrategy=qns.PLOT())
+    # sim1.parRun()
+    # sim = parSim(3, qns.DispatchPolicyStrategy.RouteToIdleQueuesStrategy(alpha=10, beta=2000, p=0.8),
+    #              qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.0001), verbose=True,
+    #              numOfRounds=rounds, historyWindowSize=20000, T_min=500000, T_max=1000000000, plotStrategy=qns.PLOT())
+    # sim.parRun()
+    # sim1.plot()
+    # sim.plot()
+    sim = parSim(3, qns.DispatchPolicyStrategy.RoundRobinRedundancyDStrategy(alpha=10, beta=2000, p=0.8, d=2, n=3, bias=0.225*2),
+                 qns.ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.00005), verbose=True,
                  numOfRounds=rounds, historyWindowSize=20000, T_min=500000, T_max=1000000000, plotStrategy=qns.PLOT())
     sim.parRun()
-    sim1.plot()
     sim.plot()

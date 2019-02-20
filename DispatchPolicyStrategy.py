@@ -537,3 +537,67 @@ class RouteToIdleQueuesStrategy(DispatchPolicyStrategyAbstract):
     ##
     def getParamStr(self):
         return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta)
+
+
+import itertools
+
+
+class RoundRobinRedundancyDStrategy(DispatchPolicyStrategyAbstract):
+    """A dispatching policy that routes to a subset of d queues from a random permutation of all possible d-sized
+    subsets of {0, 1, ... , n-1}. Once the permutation is decided, the policy will do a round robin on them."""
+
+    ##
+    # Initialize policy with @alpha being small workload for a job, @beta being unusual workload for a job and @p being
+    # the probability to choose @alpha. @d is the redundancy level. @n is the number of queues.
+    ##
+    def __init__(self, alpha, beta, p, d, n, bias=0.0):
+        self.alpha = int(alpha)
+        self.mu = 1.0 / (float(alpha) * p + float(beta) * (1.0 - p))
+        if 1.0 / self.mu <= float(alpha):
+            raise Exception("Error: must be [ (1.0 / mu) > alpha ] in order to dispatch correctly.")
+        self.beta = int(beta)
+        self.p = float(p)
+        self.d = int(d)
+        self.n = n
+        self.bias = bias
+        self.order = [list(i) for i in itertools.combinations(range(n), d)]
+        np.random.shuffle(self.order)
+        self.round = 0
+
+    ##
+    # Randomize arriving job's workload.
+    ##
+    def getDispatch(self, network):
+        # get network state.
+        currWlds = network.getWorkloads()
+        # choose queues to receive the job.
+        chosenQueues = self.order[self.round]
+        self.round = (self.round + 1) % self.n
+        # randomize incoming workload for each queue.
+        incomingWlds = np.random.choice([self.alpha, self.beta], self.d, p=[self.p, 1.0 - self.p])
+        speculation = [currWlds[chosenQueues[i]] + incomingWlds[i] for i in range(self.d)]
+        min_i = int(np.argmin(speculation))
+        added = [np.max([speculation[min_i] - currWlds[chosenQueues[i]], 0]) for i in range(self.d)]
+        return chosenQueues, added
+
+    def getName(self):
+        return "round robin redundancy-d"
+
+    ##
+    # Capacity region unknown. Returns cap. region of d=1 with a factor of the bias.
+    ##
+    def getEffectiveServiceRate(self, network):
+        return self.mu * network.getSize() * (1.0 + self.bias)
+
+    def getOneQueueMu(self):
+        return self.mu
+
+    def getRedundancy(self):
+        return self.d
+
+    ##
+    # Get policy params string for logging.
+    ##
+    def getParamStr(self):
+        return "p = " + str(self.p) + ", alpha = " + str(self.alpha) + ", beta = " + str(self.beta) + \
+               ", d = " + str(self.d)
