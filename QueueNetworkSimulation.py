@@ -413,18 +413,21 @@ class QueueNetworkSimulation:
     ##
     # Plot results from file based on given plotting scheme.
     ##
-    def plotFromFile(self, resultsFile, plotStrategy=None):
-        if self.verbose:
-            print "INFO:    Getting data from [ " + resultsFile + " ]"
-        with open(resultsFile, "r") as fd:
-            x = [float(val) for val in fd.readline().split(',')[:-1]]
-            y = [float(val) for val in fd.readline().split(',')[:-1]]
+    def plotFromFile(self, resultsFiles, plotStrategy=None):
+        xx = []
+        yy = []
+        for resultsFile in resultsFiles:
             if self.verbose:
-                print "INFO:    Results metadata:"
-                print "################################################################"
-                print fd.read()
-                print "################################################################"
-        self.plot(x, y, plotStrategy=plotStrategy)
+                print "INFO:    Getting data from [ " + resultsFile + " ]"
+            with open(resultsFile, "r") as fd:
+                xx.append([float(val) for val in fd.readline().split(',')[:-1]])
+                yy.append([float(val) for val in fd.readline().split(',')[:-1]])
+                if self.verbose:
+                    print "INFO:    Results metadata:"
+                    print "################################################################"
+                    print fd.read()
+                    print "################################################################"
+        self.plot(xx, yy, plotStrategy=plotStrategy)
 
 
 ########################################################################################################################
@@ -495,20 +498,89 @@ import ConvergenceConditionStrategy
 #                              verbose=True, numOfRounds=10, historyWindowSize=10000, T_min=1000000, T_max=150000000)
 # cProfile.run('sim.run()')
 
-# sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=1000, p=0.8, d=2),
-#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=0.001),
-#                              verbose=True, numOfRounds=100, historyWindowSize=20000, T_min=500000, T_max=150000000)
+# sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=2000, p=0.8, d=2),
+#                              ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=5e-05),
+#                              verbose=True, numOfRounds=30, historyWindowSize=20000, T_min=500000, T_max=150000000)
 # # cProfile.run('sim.run()')
 
 
-class PLOT:
+class PLOTd1vsd2:
     def __init__(self, properties=None):
         self.properties = properties
 
-    def plot(self, x, y):
-        plt.plot(x, y)
+    def plot(self, xx, yy):
+        plt.xlabel(r'$\lambda$')
+        plt.ylabel(r'Average Workload')
+        plt.axvline(self.properties.getEffectiveMu(), linestyle="--")
+        plt.text(self.properties.getEffectiveMu() + (xx[0][1] - xx[0][0]) / 5.0, np.max(yy) / 2.0,
+                 s=r'$d=1$',
+                 fontsize="x-large",
+                 verticalalignment='center',
+                 rotation=90)
+        i = 1
+        for x, y in zip(xx, yy):
+            # gain = ((x[-1] - self.properties.getEffectiveMu()) / self.properties.getEffectiveMu()) * 100.0
+            # plt.annotate(r'Capacity region increased by approx. %d%%' % gain,
+            #              xy=(x[-1], y[-1]),
+            #              xytext=(x[-1] / 2.0, y[-1] / 1.5),
+            #              fontsize="large")
+            plt.plot(x, y, label=r'$d=%d$' % i, linewidth=2)
+            i += 1
+        plt.legend(loc="best", fontsize="x-large")
         plt.show()
 
-#
-# plotter = PLOT()
-# sim.plotFromFile(resultsFile="20190110-054529_queue_net_sim.dump", plotStrategy=plotter)
+
+class PLOTd1vsd2vsRIQ:
+    def __init__(self, properties=None):
+        self.properties = properties
+
+    def plot(self, xx, yy):
+        plt.xlabel(r'$\lambda$')
+        plt.ylabel(r'Average Workload')
+        plt.axvline(self.properties.getEffectiveMu(), linestyle="--")
+        plt.text(self.properties.getEffectiveMu() + (xx[0][1] - xx[0][0]) / 5.0, np.max(yy) / 2.0,
+                 s=r'$d=1$',
+                 fontsize="x-large",
+                 verticalalignment='center',
+                 rotation=90)
+        i = 1
+        for x, y in zip(xx, yy):
+            # gain = ((x[-1] - self.properties.getEffectiveMu()) / self.properties.getEffectiveMu()) * 100.0
+            # plt.annotate(r'Capacity region increased by approx. %d%%' % gain,
+            #              xy=(x[-1], y[-1]),
+            #              xytext=(x[-1] / 2.0, y[-1] / 1.5),
+            #              fontsize="large")
+            if i != 2:
+                plt.plot(x, y, label=r'$d=%d$' % i, linewidth=2)
+            else:
+                plt.plot(x, y, label=r'$RIQ$', linewidth=2)
+            i += 1
+        plt.legend(loc="best", fontsize="x-large")
+        plt.show()
+
+
+class SimplePlotParams:
+    def __init__(self, effectiveMu):
+        self.effectiveMu = effectiveMu
+
+    def getEffectiveMu(self):
+        return self.effectiveMu
+
+
+# random-d policy, n=3, alpha=10, beta=2000, p=0.8. d=1 vs. d=2.
+sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=2000, p=0.8, d=2),
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=5e-05),
+                             verbose=True, numOfRounds=30, historyWindowSize=20000, T_min=500000, T_max=150000000)
+plotter = PLOTd1vsd2(properties=SimplePlotParams(sim.getEffectiveServiceRate()))
+sim.plotFromFile(["project_results/20190117-213847_queue_net_sim.dump",
+                  "project_results/20190117-162848_queue_net_sim.dump"], plotStrategy=plotter)
+
+#  n=3, alpha=10, beta=2000, p=0.8. no RR vs. random-d=2 vs. RIQ.
+sim = QueueNetworkSimulation(3, DispatchPolicyStrategy.RandomDStrategy(alpha=10, beta=2000, p=0.8, d=2),
+                             ConvergenceConditionStrategy.VarianceConvergenceStrategy(epsilon=5e-05),
+                             verbose=True, numOfRounds=30, historyWindowSize=20000, T_min=500000, T_max=150000000)
+plotter = PLOTd1vsd2vsRIQ(properties=SimplePlotParams(sim.getEffectiveServiceRate()))
+sim.plotFromFile(["20190121-231359_queue_net_sim.dump",
+                  "20190122-024429_queue_net_sim.dump",
+                  "20190121-175444_queue_net_sim.dump"], plotStrategy=plotter)
+
