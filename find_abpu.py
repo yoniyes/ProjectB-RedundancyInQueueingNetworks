@@ -61,22 +61,54 @@ import matplotlib.pyplot as plt
 # plt.show()
 
 
+plt.rcParams.update({'font.size': 16})
 alpha = 10.0
 beta = 2000.0
-f_p_d = lambda p, d: d*(alpha*(1.0-(1.0-p)**d) + beta*(1.0-p)**d)
-px = np.arange(0, 1.001, 0.001)
+f_p_d = lambda p, d: 1.0 / (d*(alpha*(1.0-(1.0-p)**d) + beta*(1.0-p)**d))
+px = np.arange(0, 1.00001, 0.00001)
 d1 = [f_p_d(p, 1) for p in px]
 d2 = [f_p_d(p, 2) for p in px]
 d4 = [f_p_d(p, 4) for p in px]
+maximas = [0 for i in range(len(px)+1)]
+for x in range(len(px)):
+    maximas[x] = 1
+    if d1[x] < d2[x]:
+        maximas[x] = 2
+        if d2[x] < d4[x]: maximas[x] = 4
+    elif d1[x] < d4[x]:
+        maximas[x] = 4
+        if d4[x] < d2[x]: maximas[x] = 2
+low = 0
+high = 0
+val = maximas[0]
+for x in range(len(px)+1):
+    if val == maximas[x]: continue
+    color = ('lightcoral' if val == 1 else ('lightgreen' if val == 2 else 'skyblue'))
+    high = x-1
+    plt.axvspan(px[low], px[high], facecolor=color, alpha=0.5)
+    low = x-1
+    val = maximas[x]
+p_12 = 0.5050766708
+p_21 = 0.9949
+p_14 = 0.3751469735
+p_41 = 0.9849
+p_24 = 0.2964921257
+p_42 = 0.9287
 plt.semilogy(px, d1, 'red', label=r'$d=1$')
 plt.semilogy(px, d2, 'green', label=r'$d=2$')
 plt.semilogy(px, d4, 'blue', label=r'$d=4$')
+plt.axvline(p_12, linestyle='--')
+plt.axvline(p_21, linestyle='--')
+plt.axvline(p_14, linestyle='--')
+plt.axvline(p_41, linestyle='--')
+plt.axvline(p_24, linestyle='--')
+plt.axvline(p_42, linestyle='--')
 plt.xlabel(r'$p$')
-plt.ylabel(r'$dE[\min\{b_{1},...,b_{d}\}]$')
+plt.ylabel(r'$\dfrac{1}{d\mathbb{E}[b_{1} \wedge ... \wedge b_{d}]}$')
 plt.legend()
 plt.grid(True, which="both")
-plt.title(r'The average added workload to a system of 4 queues given an arrival, for different redundancy levels',
+plt.title(r'The throughput of a system of 4 queues for different redundancy levels',
           wrap=True)
-plt.figtext(0.5, 0.03, r'$\alpha=$' + str(int(alpha)) + r', $\beta=$' + str(int(beta)) + r', $n=4$', wrap=True,
-            horizontalalignment='center', fontsize=8)
+# plt.figtext(0.5, 0.03, r'$\alpha=$' + str(int(alpha)) + r', $\beta=$' + str(int(beta)) + r', $n=4$', wrap=True,
+#             horizontalalignment='center', fontsize=8)
 plt.show()
